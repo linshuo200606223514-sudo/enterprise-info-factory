@@ -238,4 +238,129 @@ router.get('/collect/:companyName/all', async (req, res) => {
   }
 });
 
+// 信用评分查询
+router.get('/credit-score/:companyName', async (req, res) => {
+  const { companyName } = req.params;
+
+  try {
+    // 先采集多源数据
+    const scrapers = [
+      { name: 'qichacha', args: [companyName] },
+      { name: 'aiqicha', args: [companyName] },
+      { name: 'qixin', args: [companyName] },
+      { name: 'tianyancha', args: [companyName] }
+    ];
+
+    const results = await Promise.allSettled(
+      scrapers.map(scraper => runPythonScraper(scraper.name, scraper.args))
+    );
+
+    // 提取成功的结果
+    const successResults = [];
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value && !result.value.error) {
+        successResults.push(result.value);
+      }
+    }
+
+    if (successResults.length === 0) {
+      return res.json({
+        success: false,
+        error: '未找到企业数据，请先执行采集'
+      });
+    }
+
+    // 合并数据
+    const { mergeCompanyData } = require('../../api/services/dataMerger');
+    const { generateCreditScore } = require('../../api/services/creditScorer');
+    const mergedData = mergeCompanyData(successResults);
+    const creditScore = generateCreditScore(mergedData);
+
+    res.json({
+      success: true,
+      data: creditScore
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 批量信用评分
+router.post('/credit-score/batch', async (req, res) => {
+  const { companies } = req.body;
+
+  if (!companies || !Array.isArray(companies) || companies.length === 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'companies 参数无效'
+    });
+  }
+
+  try {
+    const { generateCreditScore } = require('../../api/services/creditScorer');
+    const { mergeCompanyData } = require('../../api/services/dataMerger');
+    const { runPythonScraper } = require('../../api/services/aggregator');
+
+    const results = [];
+
+    for (const companyName of companies) {
+      try {
+        // 并行采集
+        const scrapers = [
+          { name: 'qichacha', args: [companyName] },
+          { name: 'aiqicha', args: [companyName] },
+          { name: 'qixin', args: [companyName] },
+          { name: 'tianyancha', args: [companyName] }
+        ];
+
+        const scrapeResults = await Promise.allSettled(
+          scrapers.map(scraper => runPythonScraper(scraper.name, scraper.args))
+        );
+
+        const successResults = scrapeResults
+          .filter(r => r.status === 'fulfilled' && r.value && !r.value.error)
+          .map(r => r.value);
+
+        if (successResults.length === 0) {
+          results.push({
+            company_name: companyName,
+            credit_score: null,
+            credit_grade: null,
+            error: '采集失败'
+          });
+          continue;
+        }
+
+        const merged = mergeCompanyData(successResults);
+        const score = generateCreditScore(merged);
+
+        results.push({
+          company_name: companyName,
+          credit_score: score.credit_score,
+          credit_grade: score.credit_grade,
+          risk_tags: score.risk_tags
+        });
+      } catch (e) {
+        results.push({
+          company_name: companyName,
+          credit_score: null,
+          credit_grade: null,
+          error: e.message
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        results: results,
+        total: results.length,
+        generated_at: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;
