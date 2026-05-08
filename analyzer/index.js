@@ -39,6 +39,50 @@ function getScale(employeeCount) {
   return 'large';
 }
 
+/**
+ * 根据痛点类别推荐具体功能
+ * @param {string} category - 痛点类别
+ * @returns {Array} 推荐功能列表
+ */
+function getRecommendedFeatures(category) {
+  const featureMap = {
+    '订单管理': [
+      { name: '订单录入与追踪', status: 'recommended' },
+      { name: '客户管理', status: 'recommended' },
+      { name: '报价管理', status: 'recommended' },
+      { name: '交货管理', status: 'recommended' }
+    ],
+    '库存管理': [
+      { name: '原材料库存', status: 'recommended' },
+      { name: '成品库存', status: 'recommended' },
+      { name: '出入库记录', status: 'recommended' },
+      { name: '库存预警', status: 'recommended' }
+    ],
+    '账款管理': [
+      { name: '应收账款', status: 'recommended' },
+      { name: '应付账款', status: 'recommended' },
+      { name: '账单结算', status: 'recommended' },
+      { name: '账期管理', status: 'recommended' }
+    ],
+    '采购协同': [
+      { name: '供应商管理', status: 'recommended' },
+      { name: '采购订单', status: 'recommended' },
+      { name: '到货验收', status: 'recommended' },
+      { name: '采购统计', status: 'recommended' }
+    ],
+    '生产计划': [
+      { name: '生产排程', status: 'recommended' },
+      { name: '工序管理', status: 'recommended' },
+      { name: '工时统计', status: 'recommended' },
+      { name: '生产报表', status: 'recommended' }
+    ]
+  };
+  return featureMap[category] || [
+    { name: '基础功能', status: 'recommended' },
+    { name: '高级功能', status: 'recommended' }
+  ];
+}
+
 // ==================== 核心函数 ====================
 
 /**
@@ -138,25 +182,21 @@ function generateMetaConfig(companyData, painPoints) {
   const companyName = companyData.enterpriseName || companyData.name || companyData.enterprise_name || '未知企业';
 
   // 转换痛点为模块配置
-  const modules = painPoints.map(painPoint => ({
-    id: getModuleName(painPoint.category),
-    name: painPoint.category,
-    priority: painPoint.severity === 'high' ? 1 : painPoint.severity === 'medium' ? 2 : 3,
-    features: [
-      {
-        name: '基础功能',
-        status: 'recommended'
-      },
-      {
-        name: painPoint.suggestion || painPoint.recommendation || '高级功能',
-        status: 'recommended'
+  const modules = painPoints.map(painPoint => {
+    // 根据痛点类别推荐具体功能
+    const recommendedFeatures = getRecommendedFeatures(painPoint.category);
+
+    return {
+      id: getModuleName(painPoint.category),
+      name: painPoint.category,
+      priority: painPoint.severity === 'high' ? 1 : painPoint.severity === 'medium' ? 2 : 3,
+      features: recommendedFeatures,
+      metadata: {
+        source: painPoint.source,
+        recommendation: painPoint.recommendation || ''
       }
-    ],
-    metadata: {
-      source: painPoint.source,
-      recommendation: painPoint.suggestion || painPoint.recommendation || ''
-    }
-  }));
+    };
+  });
 
   // 按优先级排序
   modules.sort((a, b) => a.priority - b.priority);
@@ -166,7 +206,7 @@ function generateMetaConfig(companyData, painPoints) {
     company: {
       name: companyName,
       scale: getScale(companyData.employees || companyData.employee_count),
-      industry: companyData.industry || '造纸箱'
+      industry: '造纸箱'
     },
     modules: modules,
     metadata: {
