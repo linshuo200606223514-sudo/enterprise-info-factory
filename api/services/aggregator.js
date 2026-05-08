@@ -7,6 +7,8 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
+const { analyzeCompany, saveMetaConfig } = require('../../analyzer');
+
 /**
  * 调用Python采集器
  * @param {string} scriptName - 脚本名称（不含.py后缀）
@@ -124,6 +126,21 @@ async function searchEnterprise(enterpriseName, options = {}) {
 
   // 添加行业网站结果
   aggregatedResult.industry = results[2].value;
+
+  // 调用 AI 痛点分析模块
+  try {
+    console.log('[Aggregator] 开始 AI 痛点分析...');
+    const painPoints = await analyzeCompany(aggregatedResult);
+    aggregatedResult.painPoints = painPoints;
+    console.log('[Aggregator] AI 痛点分析完成');
+
+    // 保存元模型配置
+    const metaConfigDir = path.join(__dirname, '../../output/meta-config');
+    await saveMetaConfig(enterpriseName, painPoints, metaConfigDir);
+    console.log('[Aggregator] 元模型配置已保存');
+  } catch (err) {
+    console.error('[Aggregator] AI 痛点分析失败:', err.message);
+  }
 
   // 保存结果到JSON文件
   const outputPath = path.join(outputDir, `${enterpriseName}_${timestamp}.json`);
