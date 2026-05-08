@@ -1,0 +1,19 @@
+{
+  "name": "enterprise-info-factory",
+  "version": "1.0.0",
+  "description": "企业信息工厂 - 从公开渠道收集企业信息并生成结构化报告",
+  "main": "api/index.js",
+  "bin": {
+    "enterprise-info": "bin/cli.js"
+  },
+  "scripts": {
+    "start": "node api/index.js",
+    "cli": "node bin/cli.js"
+  },
+  "keywords": ["enterprise", "info", "scraper", "baidu", "tianyancha"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.1.0"
+  }
+}
