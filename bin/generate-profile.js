@@ -9,7 +9,6 @@ const path = require('path');
 
 // 读取最新数据文件
 function findLatestData(companyName) {
-  // 优先从 output/ 目录查找
   const outputDir = path.join(__dirname, '../output');
   if (!fs.existsSync(outputDir)) return null;
 
@@ -18,32 +17,17 @@ function findLatestData(companyName) {
     .sort()
     .reverse();
 
-  if (files.length > 0) {
-    return path.join(outputDir, files[0]);
-  }
-
-  // 备选：从 output/data/ 目录查找
-  const dataDir = path.join(__dirname, '../output/data');
-  if (!fs.existsSync(dataDir)) return null;
-
-  const dataFiles = fs.readdirSync(dataDir)
-    .filter(f => f.startsWith(companyName) && f.endsWith('.json'))
-    .sort()
-    .reverse();
-
-  return dataFiles.length > 0 ? path.join(dataDir, dataFiles[0]) : null;
+  return files.length > 0 ? path.join(outputDir, files[0]) : null;
 }
 
 // 读取元模型配置
 function findMetaConfig(companyName) {
-  // 优先从 output/ 目录查找
   const outputDir = path.join(__dirname, '../output');
   const metaInOutput = path.join(outputDir, `${companyName}_meta_config.json`);
   if (fs.existsSync(metaInOutput)) {
     return metaInOutput;
   }
 
-  // 备选：从 output/meta-config/ 目录查找
   const configDir = path.join(__dirname, '../output/meta-config');
   if (!fs.existsSync(configDir)) return null;
 
@@ -53,34 +37,6 @@ function findMetaConfig(companyName) {
     .reverse();
 
   return files.length > 0 ? path.join(configDir, files[0]) : null;
-}
-
-// 替换模板变量
-function renderTemplate(template, data) {
-  let result = template;
-
-  // 简单模板替换
-  result = result.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-    return data[key] !== undefined ? data[key] : match;
-  });
-
-  // 处理 {{#each}} 循环
-  result = result.replace(/\{\{#each (\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (match, key, inner) => {
-    const arr = data[key];
-    if (!Array.isArray(arr)) return '';
-    return arr.map(item => {
-      let innerResult = inner;
-      // 处理 {{this}}
-      innerResult = innerResult.replace(/\{\{this\}\}/g, item);
-      // 处理 {{category}}, {{recommendation}} 等属性
-      innerResult = innerResult.replace(/\{\{(\w+)\}\}/g, (m, k) => {
-        return item[k] !== undefined ? item[k] : m;
-      });
-      return innerResult;
-    }).join('');
-  });
-
-  return result;
 }
 
 // 获取规模文本
@@ -106,12 +62,61 @@ function getSeverity(priority) {
   return map[priority] || 'medium';
 }
 
+// 生成模块 HTML
+function generateModulesHtml(modules) {
+  return modules.map(m => {
+    const severity = getSeverity(m.priority);
+    const priorityText = getPriorityText(m.priority);
+    const features = (m.features || []).map(f => {
+      const name = typeof f === 'object' ? f.name : f;
+      return `<span class="feature-tag">${name}</span>`;
+    }).join('');
+
+    return `
+        <li class="module-item ${severity}">
+          <div class="module-header">
+            <span class="module-name">${m.name}</span>
+            <span class="priority ${severity}">${priorityText}</span>
+          </div>
+          <div class="feature-tags">
+            ${features}
+          </div>
+        </li>`;
+  }).join('');
+}
+
+// 生成痛点 HTML
+function generatePainPointsHtml(modules) {
+  return modules.map(m => `
+      <div class="pain-point-item">
+        <h4>${m.name}</h4>
+        <p>${m.metadata?.recommendation || ''}</p>
+      </div>`).join('');
+}
+
+// 生成数据来源 HTML
+function generateSourcesHtml(sources) {
+  return sources.map(s => `<span class="source-tag">${s}</span>`).join('');
+}
+
+// 替换模板变量
+function renderTemplate(template, data) {
+  return template
+    .replace(/\{\{company_name\}\}/g, data.company_name)
+    .replace(/\{\{industry\}\}/g, data.industry)
+    .replace(/\{\{scale_text\}\}/g, data.scale_text)
+    .replace(/\{\{source_count\}\}/g, data.source_count)
+    .replace(/\{\{generate_time\}\}/g, data.generate_time)
+    .replace(/\{\{pain_points_html\}\}/g, data.pain_points_html)
+    .replace(/\{\{modules_html\}\}/g, data.modules_html)
+    .replace(/\{\{sources_html\}\}/g, data.sources_html);
+}
+
 // 主要函数
 function main() {
   const companyName = process.argv[2] || '东社造纸厂';
   console.log(`正在为 "${companyName}" 生成企业画像...`);
 
-  // 读取数据
   const dataFile = findLatestData(companyName);
   const metaFile = findMetaConfig(companyName);
 
@@ -134,36 +139,25 @@ function main() {
     metaConfig = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
   }
 
-  // 读取模板
   const templatePath = path.join(__dirname, '../templates/enterprise-profile.html');
   let template = fs.readFileSync(templatePath, 'utf8');
 
-  // 构建渲染数据
+  const modules = metaConfig.modules || [];
+  const sources = companyData.sources || [];
+
   const renderData = {
     company_name: metaConfig.company?.name || companyData.enterpriseName || companyName,
     industry: metaConfig.company?.industry || '造纸箱',
-    scale: metaConfig.company?.scale || 'unknown',
     scale_text: getScaleText(metaConfig.company?.scale),
-    source_count: companyData.sources?.length || 0,
+    source_count: sources.length,
     generate_time: new Date().toLocaleString('zh-CN'),
-    sources: companyData.sources || ['未知'],
-    modules: (metaConfig.modules || []).map(m => ({
-      name: m.name,
-      severity: getSeverity(m.priority),
-      priority: m.priority,
-      priority_text: getPriorityText(m.priority),
-      features: (m.features || []).map(f => f.name || f)
-    })),
-    pain_points: (metaConfig.modules || []).map(m => ({
-      category: m.name,
-      recommendation: m.metadata?.recommendation || ''
-    }))
+    modules_html: generateModulesHtml(modules),
+    pain_points_html: generatePainPointsHtml(modules),
+    sources_html: generateSourcesHtml(sources)
   };
 
-  // 渲染模板
   const html = renderTemplate(template, renderData);
 
-  // 保存 HTML
   const outputDir = path.join(__dirname, '../output/reports');
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });

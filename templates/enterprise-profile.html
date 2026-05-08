@@ -150,39 +150,20 @@
 
     <div class="card">
       <h2>🎯 痛点分析</h2>
-      {{#each pain_points}}
-      <div class="pain-point-item">
-        <h4>{{category}}</h4>
-        <p>{{recommendation}}</p>
-      </div>
-      {{/each}}
+      {{pain_points_html}}
     </div>
 
     <div class="card">
       <h2>📦 推荐管理模块</h2>
       <ul class="module-list">
-        {{#each modules}}
-        <li class="module-item {{severity}}">
-          <div class="module-header">
-            <span class="module-name">{{name}}</span>
-            <span class="priority {{severity}}">{{priority_text}}</span>
-          </div>
-          <div class="feature-tags">
-            {{#each features}}
-            <span class="feature-tag">{{this}}</span>
-            {{/each}}
-          </div>
-        </li>
-        {{/each}}
+      {{modules_html}}
       </ul>
     </div>
 
     <div class="card">
       <h2>🔗 数据来源</h2>
       <div class="source-list">
-        {{#each sources}}
-        <span class="source-tag">{{this}}</span>
-        {{/each}}
+        {{sources_html}}
       </div>
     </div>
 
