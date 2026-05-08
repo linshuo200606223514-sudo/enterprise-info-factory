@@ -64,3 +64,34 @@ enterprise-info-factory/
 ```bash
 npm test
 ```
+
+## AI 增强分析（可选）
+
+系统支持使用 Claude AI 进行深度分析，增强痛点识别和推荐模块的准确性。
+
+### 启用 AI 增强
+
+1. 获取 Anthropic API Key：
+   - 访问 [Anthropic Console](https://console.anthropic.com/)
+   - 创建 API Key
+
+2. 设置环境变量：
+
+```bash
+# Windows (CMD)
+set ANTHROPIC_API_KEY=sk-ant-xxxxx
+
+# Windows (PowerShell)
+$env:ANTHROPIC_API_KEY="sk-ant-xxxxx"
+
+# Linux/Mac
+export ANTHROPIC_API_KEY=sk-ant-xxxxx
+```
+
+3. 重新运行搜索命令，AI 分析结果会自动合并到输出中。
+
+### 说明
+
+- 如果未设置 `ANTHROPIC_API_KEY`，系统会使用纯规则引擎分析
+- AI 分析结果会覆盖规则引擎的同类痛点（优先级更高）
+- 启用 AI 后，输出中 `painPoints.merged` 的 `source` 字段会显示 `ai_overridden`

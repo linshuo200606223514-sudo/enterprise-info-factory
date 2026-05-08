@@ -55,7 +55,7 @@ function detectChanges(oldData, newData) {
  * @returns {Array} 客户名称列表
  */
 async function getMonitoredCompanies() {
-  const db = require('../database').getDb();
+  const db = require('../../server/db').getDb();
 
   const rows = db.exec(`
     SELECT company_name FROM company_cache
@@ -78,7 +78,7 @@ async function getMonitoredCompanies() {
  * @returns {Object|null}
  */
 async function getCachedData(companyName) {
-  const db = require('../database').getDb();
+  const db = require('../../server/db').getDb();
 
   const rows = db.exec(`
     SELECT data, credit_score, credit_grade FROM company_cache
@@ -105,7 +105,7 @@ async function getCachedData(companyName) {
  * @param {string} creditGrade
  */
 async function updateCache(companyName, data, creditScore, creditGrade) {
-  const db = require('../database').getDb();
+  const db = require('../../server/db').getDb();
 
   db.exec(`
     INSERT OR REPLACE INTO company_cache (company_name, data, credit_score, credit_grade, updated_at)
@@ -119,7 +119,7 @@ async function updateCache(companyName, data, creditScore, creditGrade) {
  * @returns {number} 预警ID
  */
 async function saveAlert(alert) {
-  const db = require('../database').getDb();
+  const db = require('../../server/db').getDb();
 
   db.exec(`
     INSERT INTO alerts (company_name, change_type, old_value, new_value, old_score, new_score, old_grade, new_grade, alert_sent, created_at)

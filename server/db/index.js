@@ -3,6 +3,7 @@ const SqliteAdapter = require('./sqlite');
 const MysqlAdapter = require('./mysql');
 
 let dbInstance = null;
+let initPromise = null;
 
 function createDbClient(databaseUrl) {
   if (databaseUrl.startsWith('mysql://')) {
@@ -14,7 +15,7 @@ function createDbClient(databaseUrl) {
   return new SqliteAdapter(absolutePath);
 }
 
-async function getDb() {
+async function initDb() {
   if (!dbInstance) {
     dbInstance = createDbClient(process.env.DATABASE_URL || 'sqlite:./data/enterprise.db');
     await dbInstance.init();
@@ -22,11 +23,28 @@ async function getDb() {
   return dbInstance;
 }
 
+// 同步获取数据库实例（仅在 initDb() 后有效）
+function getDb() {
+  if (!dbInstance) {
+    throw new Error('Database not initialized. Call await initDb() first.');
+  }
+  return dbInstance;
+}
+
+// 异步初始化（启动时调用）
+async function ensureDb() {
+  if (!initPromise) {
+    initPromise = initDb();
+  }
+  return initPromise;
+}
+
 function closeDb() {
   if (dbInstance) {
     dbInstance.close();
     dbInstance = null;
+    initPromise = null;
   }
 }
 
-module.exports = { getDb, closeDb };
+module.exports = { getDb, ensureDb, closeDb };

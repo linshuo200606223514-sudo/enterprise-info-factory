@@ -23,6 +23,11 @@ class SqliteAdapter {
     this._save();
   }
 
+  exec(sql) {
+    this.db.exec(sql);
+    this._save();
+  }
+
   get(sql, params = []) {
     const stmt = this.db.prepare(sql);
     stmt.bind(params);

@@ -20,6 +20,53 @@ sys.path.insert(0, str(project_root))
 from playwright.async_api import async_playwright
 
 
+async def extract_employee_count(page) -> int:
+    """从天眼查详情页提取员工人数"""
+    # 尝试多种选择器
+    selectors = [
+        ".employee-count",
+        ".staff-count",
+        ".num-employment",
+        "[class*='employee']",
+        "[class*='staff']",
+        ".company-index-item:nth-child(5) .num",
+        ".info-col:contains('人员规模')"
+    ]
+
+    for selector in selectors:
+        try:
+            elem = await page.query_selector(selector)
+            if elem:
+                text = await elem.inner_text()
+                # 提取数字
+                import re
+                match = re.search(r'(\d+)', text)
+                if match:
+                    return int(match.group(1))
+        except:
+            continue
+
+    # 尝试从页面文本中查找
+    try:
+        content = await page.content()
+        import re
+        # 匹配 "人员规模：XXX人" 或 "员工：XXX人" 等模式
+        patterns = [
+            r'人员规模[：:]\s*(\d+)',
+            r'员工[：:]\s*(\d+)',
+            r'人员[：:]\s*(\d+)',
+            r'(\d+)\s*人\s*$'
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, content)
+            if match:
+                return int(match.group(1))
+    except:
+        pass
+
+    return None
+
+
 async def search_tianyancha(company_name: str, timeout: int = 30000) -> dict:
     """
     使用Playwright爬取天眼查企业信息
@@ -43,7 +90,8 @@ async def search_tianyancha(company_name: str, timeout: int = 30000) -> dict:
             "unified_social_credit_code": None,
             "registration_authority": None,
             "company_type": None,
-            "address": None
+            "address": None,
+            "employee_count": None
         },
         "requires_login": False,
         "error": None
@@ -158,6 +206,11 @@ async def search_tianyancha(company_name: str, timeout: int = 30000) -> dict:
                         address_elem = await page.query_selector(".address, [class*='address']")
                         if address_elem:
                             results["data"]["address"] = await address_elem.inner_text()
+
+                        # 员工人数
+                        employee_count = await extract_employee_count(page)
+                        if employee_count:
+                            results["data"]["employee_count"] = employee_count
 
         except Exception as e:
             results["error"] = str(e)

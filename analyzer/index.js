@@ -205,7 +205,12 @@ function generateMetaConfig(companyData, painPoints) {
   return {
     company: {
       name: companyName,
-      scale: getScale(companyData.employees || companyData.employee_count),
+      scale: getScale(
+        companyData.employees ||
+        companyData.employee_count ||
+        (companyData.data && companyData.data.tianyancha && companyData.data.tianyancha.data.employee_count) ||
+        null
+      ),
       industry: '造纸箱'
     },
     modules: modules,
