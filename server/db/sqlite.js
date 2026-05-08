@@ -1,4 +1,4 @@
-const Database = require('sql.js');
+const initSqlJs = require('sql.js');
 const path = require('path');
 const fs = require('fs');
 
@@ -9,7 +9,7 @@ class SqliteAdapter {
   }
 
   async init() {
-    const SQL = await require('sql.js');
+    const SQL = await initSqlJs();
     if (fs.existsSync(this.dbPath)) {
       const buffer = fs.readFileSync(this.dbPath);
       this.db = new SQL.Database(buffer);
