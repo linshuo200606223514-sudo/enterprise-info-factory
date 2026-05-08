@@ -8,7 +8,8 @@
   },
   "scripts": {
     "start": "node api/index.js",
-    "cli": "node bin/cli.js"
+    "cli": "node bin/cli.js",
+    "test": "node bin/cli.js search 测试公司"
   },
   "keywords": ["enterprise", "info", "scraper", "baidu", "tianyancha"],
   "author": "",
