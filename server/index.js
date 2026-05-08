@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 const { setupCors } = require('./middleware/cors');
 const enterpriseRoutes = require('./routes/enterprise');
+const alertsRoutes = require('./routes/alerts');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,6 +17,7 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 
 // API 路由
 app.use('/api', enterpriseRoutes);
+app.use('/api/alerts', alertsRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
