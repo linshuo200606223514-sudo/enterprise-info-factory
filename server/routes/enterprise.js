@@ -219,8 +219,9 @@ router.get('/collect/:companyName/all', async (req, res) => {
     });
 
     // 合并数据
-    const { mergeCompanyData } = require('../../api/services/dataMerger');
+    const { mergeCompanyData, generateDataQualityReport } = require('../../api/services/dataMerger');
     const mergedData = mergeCompanyData(successResults);
+    const qualityReport = generateDataQualityReport(mergedData, successResults);
 
     res.json({
       success: true,
@@ -228,7 +229,8 @@ router.get('/collect/:companyName/all', async (req, res) => {
         merged: mergedData,
         sources: successResults.map(r => r.source),
         source_count: successResults.length,
-        errors: errors
+        errors: errors,
+        quality_report: qualityReport
       }
     });
   } catch (error) {
