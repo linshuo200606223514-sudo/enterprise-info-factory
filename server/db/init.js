@@ -75,6 +75,20 @@ CREATE TABLE IF NOT EXISTS alerts (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   level TEXT DEFAULT '高'
 );
+
+CREATE TABLE IF NOT EXISTS manual_tasks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_name TEXT NOT NULL,
+  source TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  raw_data TEXT,
+  required_fields TEXT,
+  status TEXT DEFAULT 'pending',
+  assigned_to TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  completed_at DATETIME
+);
 `;
 
 async function initDatabase() {
