@@ -4,6 +4,7 @@
  */
 
 const path = require('path');
+const { searchEnterprise } = require('./services/aggregator');
 
 /**
  * 收集企业信息
@@ -17,30 +18,14 @@ async function collectCompanyInfo(companyName, options = {}) {
 
   console.log(`[企业信息工厂] 开始收集: ${companyName}`);
 
-  const result = {
-    companyName,
-    collectedAt: new Date().toISOString(),
-    sources: [],
-    data: {}
-  };
-
-  // TODO: 实现具体的收集逻辑
-  // 1. 百度搜索企业官网
-  // 2. 天眼查查询工商信息
-  // 3. 其他公开渠道
-
-  console.log(`[企业信息工厂] 收集完成`);
-
-  // 输出结果
-  if (format === 'json') {
-    const fs = require('fs');
-    const outputPath = path.join(outputDir, 'data', `${companyName}.json`);
-    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-    fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
-    console.log(`[企业信息工厂] 已保存到: ${outputPath}`);
+  try {
+    const result = await searchEnterprise(companyName, { outputDir });
+    console.log(`[企业信息工厂] 收集完成`);
+    return result;
+  } catch (error) {
+    console.error(`[企业信息工厂] 收集失败:`, error.message);
+    throw error;
   }
-
-  return result;
 }
 
 module.exports = {

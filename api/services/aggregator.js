@@ -135,8 +135,8 @@ async function searchEnterprise(enterpriseName, options = {}) {
     console.log('[Aggregator] AI 痛点分析完成');
 
     // 保存元模型配置
-    const metaConfigDir = path.join(__dirname, '../../output/meta-config');
-    await saveMetaConfig(enterpriseName, painPoints, metaConfigDir);
+    const outputDir = path.join(__dirname, '../../output');
+    await saveMetaConfig(painPoints.metaConfig, outputDir);
     console.log('[Aggregator] 元模型配置已保存');
   } catch (err) {
     console.error('[Aggregator] AI 痛点分析失败:', err.message);
