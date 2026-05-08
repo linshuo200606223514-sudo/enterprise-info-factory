@@ -12,14 +12,19 @@ class ManualInterventionService {
    * @returns {Object} 创建的待办记录
    */
   createTask({ companyName, source, reason, rawData = null, requiredFields = [] }) {
-    const db = getDb();
-    db.run(
-      `INSERT INTO manual_tasks (company_name, source, reason, raw_data, required_fields, status)
-       VALUES (?, ?, ?, ?, ?, 'pending')`,
-      [companyName, source, reason, rawData ? JSON.stringify(rawData) : null, JSON.stringify(requiredFields)]
-    );
-    const result = db.get('SELECT last_insert_rowid() as id');
-    return { id: result.id, company_name: companyName, source, reason, status: 'pending' };
+    try {
+      const db = getDb();
+      db.run(
+        `INSERT INTO manual_tasks (company_name, source, reason, raw_data, required_fields, status)
+         VALUES (?, ?, ?, ?, ?, 'pending')`,
+        [companyName, source, reason, rawData ? JSON.stringify(rawData) : null, JSON.stringify(requiredFields)]
+      );
+      const result = db.get('SELECT last_insert_rowid() as id');
+      return { id: result.id, company_name: companyName, source, reason, status: 'pending' };
+    } catch (e) {
+      console.error('[ManualInterventionService] createTask error:', e.message);
+      throw e;
+    }
   }
 
   /**
@@ -54,10 +59,10 @@ class ManualInterventionService {
     const db = getDb();
     const task = db.get('SELECT * FROM manual_tasks WHERE id = ?', [id]);
     if (task && task.raw_data) {
-      try { task.raw_data = JSON.parse(task.raw_data); } catch (e) {}
+      try { task.raw_data = JSON.parse(task.raw_data); } catch (e) { console.warn('[ManualInterventionService] JSON.parse raw_data failed:', e.message); }
     }
     if (task && task.required_fields) {
-      try { task.required_fields = JSON.parse(task.required_fields); } catch (e) {}
+      try { task.required_fields = JSON.parse(task.required_fields); } catch (e) { console.warn('[ManualInterventionService] JSON.parse required_fields failed:', e.message); }
     }
     return task;
   }
@@ -69,6 +74,10 @@ class ManualInterventionService {
    * @returns {Object}
    */
   completeTask(id, data) {
+    if (!data) {
+      throw new Error('[ManualInterventionService] completeTask requires data parameter');
+    }
+    console.log('[ManualInterventionService] Completing task', id, 'with data:', JSON.stringify(data));
     const db = getDb();
     db.run(
       `UPDATE manual_tasks SET status = 'completed', updated_at = datetime('now'), completed_at = datetime('now') WHERE id = ?`,
