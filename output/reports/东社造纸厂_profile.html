@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>企业画像 - 东社造纸厂</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    .header {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+    .header h1 { color: #333; font-size: 28px; margin-bottom: 10px; }
+    .header .badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+    .card {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 15px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+    .card h2 {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+    }
+    .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+    .info-item { background: #f8f9fa; padding: 15px; border-radius: 10px; }
+    .info-item .label { font-size: 12px; color: #666; margin-bottom: 5px; }
+    .info-item .value { font-size: 16px; color: #333; font-weight: bold; }
+    .module-list { list-style: none; }
+    .module-item {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-left: 4px solid #667eea;
+    }
+    .module-item.high { border-left-color: #e74c3c; }
+    .module-item.medium { border-left-color: #f39c12; }
+    .module-item.low { border-left-color: #27ae60; }
+    .module-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .module-name { font-weight: bold; color: #333; font-size: 16px; }
+    .priority {
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 15px;
+      color: white;
+    }
+    .priority.high { background: #e74c3c; }
+    .priority.medium { background: #f39c12; }
+    .priority.low { background: #27ae60; }
+    .feature-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .feature-tag {
+      background: #667eea;
+      color: white;
+      padding: 5px 12px;
+      border-radius: 15px;
+      font-size: 12px;
+    }
+    .pain-point-item {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 0 10px 10px 0;
+    }
+    .pain-point-item h4 { color: #856404; margin-bottom: 5px; }
+    .pain-point-item p { color: #856404; font-size: 14px; opacity: 0.8; }
+    .btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 15px 30px;
+      border-radius: 25px;
+      text-decoration: none;
+      font-weight: bold;
+      text-align: center;
+      cursor: pointer;
+      border: none;
+      font-size: 16px;
+      width: 100%;
+      margin-top: 10px;
+    }
+    .footer {
+      text-align: center;
+      color: white;
+      opacity: 0.8;
+      margin-top: 20px;
+      font-size: 12px;
+    }
+    .source-list { display: flex; flex-wrap: wrap; gap: 10px; }
+    .source-tag {
+      background: #e9ecef;
+      color: #495057;
+      padding: 5px 12px;
+      border-radius: 15px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>东社造纸厂</h1>
+      <span class="badge">造纸箱 · 规模待确认</span>
+    </div>
+
+    <div class="card">
+      <h2>📋 企业信息</h2>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="label">企业名称</div>
+          <div class="value">东社造纸厂</div>
+        </div>
+        <div class="info-item">
+          <div class="label">所属行业</div>
+          <div class="value">造纸箱</div>
+        </div>
+        <div class="info-item">
+          <div class="label">企业规模</div>
+          <div class="value">规模待确认</div>
+        </div>
+        <div class="info-item">
+          <div class="label">数据来源</div>
+          <div class="value">3个</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🎯 痛点分析</h2>
+      
+      <div class="pain-point-item">
+        <h4>订单管理</h4>
+        <p>建议部署订单管理模块</p>
+      </div>
+      
+      <div class="pain-point-item">
+        <h4>库存管理</h4>
+        <p>建议部署库存管理模块</p>
+      </div>
+      
+      <div class="pain-point-item">
+        <h4>账款管理</h4>
+        <p>建议部署账款管理模块</p>
+      </div>
+      
+      <div class="pain-point-item">
+        <h4>采购协同</h4>
+        <p>建议部署采购管理模块</p>
+      </div>
+      
+    </div>
+
+    <div class="card">
+      <h2>📦 推荐管理模块</h2>
+      <ul class="module-list">
+        
+        <li class="module-item high">
+          <div class="module-header">
+            <span class="module-name">订单管理</span>
+            <span class="priority high">高优先级</span>
+          </div>
+          <div class="feature-tags">
+            {{#each features}}
+            <span class="feature-tag">[object Object]</span>
+            
+        <li class="module-item high">
+          <div class="module-header">
+            <span class="module-name">库存管理</span>
+            <span class="priority high">高优先级</span>
+          </div>
+          <div class="feature-tags">
+            {{#each features}}
+            <span class="feature-tag">[object Object]</span>
+            
+        <li class="module-item high">
+          <div class="module-header">
+            <span class="module-name">账款管理</span>
+            <span class="priority high">高优先级</span>
+          </div>
+          <div class="feature-tags">
+            {{#each features}}
+            <span class="feature-tag">[object Object]</span>
+            
+        <li class="module-item medium">
+          <div class="module-header">
+            <span class="module-name">采购协同</span>
+            <span class="priority medium">中优先级</span>
+          </div>
+          <div class="feature-tags">
+            {{#each features}}
+            <span class="feature-tag">[object Object]</span>
+            
+          </div>
+        </li>
+        {{/each}}
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>🔗 数据来源</h2>
+      <div class="source-list">
+        
+        <span class="source-tag">baidu_search</span>
+        
+        <span class="source-tag">tianyancha</span>
+        
+        <span class="source-tag">industry_sites</span>
+        
+      </div>
+    </div>
+
+    <button class="btn" onclick="generateApp()">🚀 基于此配置生成应用</button>
+
+    <div class="footer">
+      由 AI 企业信息工厂生成 · 2026/5/8 16:53:17
+    </div>
+  </div>
+
+  <script>
+    function generateApp() {
+      alert('正在基于元模型配置生成应用...');
+    }
+  </script>
+</body>
+</html>
