@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>企业管理后台</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <h1>企业管理系统</h1>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h2>企业管理</h2>
+      <div style="margin-bottom: 16px;">
+        <button class="btn btn-primary" onclick="showCreateModal()">+ 添加企业</button>
+      </div>
+      <div id="enterprise-list">
+        <div class="empty-state">
+          <p>暂无企业数据</p>
+          <button class="btn btn-primary" onclick="showCreateModal()">添加第一个企业</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 创建/编辑企业模态框 -->
+  <div class="modal" id="enterprise-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">添加企业</h3>
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+      </div>
+      <form id="enterprise-form">
+        <input type="hidden" id="enterprise-id">
+        <div class="form-group">
+          <label>企业名称</label>
+          <input type="text" id="enterprise-name" required>
+        </div>
+        <div class="form-group">
+          <label>所属行业</label>
+          <input type="text" id="enterprise-industry" placeholder="如：造纸箱">
+        </div>
+        <div class="form-group">
+          <label>企业规模</label>
+          <select id="enterprise-scale">
+            <option value="unknown">待确认</option>
+            <option value="small">小微企业 (&lt;50人)</option>
+            <option value="medium">中小型企业 (50-200人)</option>
+            <option value="large">大型企业 (&gt;200人)</option>
+          </select>
+        </div>
+        <div style="text-align: right;">
+          <button type="button" class="btn" onclick="closeModal()">取消</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 企业详情模态框 -->
+  <div class="modal" id="detail-modal">
+    <div class="modal-content" style="max-width: 900px;">
+      <div class="modal-header">
+        <h3 id="detail-title">企业详情</h3>
+        <span class="modal-close" onclick="closeDetailModal()">&times;</span>
+      </div>
+      <div id="detail-content"></div>
+    </div>
+  </div>
+
+  <script src="assets/js/api.js"></script>
+  <script>
+    let currentEnterpriseId = null;
+
+    async function loadEnterprises() {
+      try {
+        const enterprises = await enterpriseApi.list();
+        renderEnterpriseList(enterprises);
+      } catch (e) {
+        console.error('加载企业列表失败:', e);
+      }
+    }
+
+    function renderEnterpriseList(enterprises) {
+      const container = document.getElementById('enterprise-list');
+      if (!enterprises || enterprises.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>暂无企业数据</p><button class="btn btn-primary" onclick="showCreateModal()">添加第一个企业</button></div>';
+        return;
+      }
+      container.innerHTML = `
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>企业名称</th>
+              <th>行业</th>
+              <th>规模</th>
+              <th>创建时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${enterprises.map(e => `
+              <tr>
+                <td>${e.id}</td>
+                <td><a href="#" onclick="showEnterpriseDetail(${e.id})" style="color:#667eea;text-decoration:none;">${e.name}</a></td>
+                <td>${e.industry || '-'}</td>
+                <td>${getScaleText(e.scale)}</td>
+                <td>${e.created_at ? new Date(e.created_at).toLocaleDateString('zh-CN') : '-'}</td>
+                <td>
+                  <button class="btn btn-primary" style="padding:4px 8px;font-size:12px;" onclick="showEditModal(${e.id}, '${e.name}', '${e.industry || ''}', '${e.scale || ''}')">编辑</button>
+                  <button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="deleteEnterprise(${e.id})">删除</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function getScaleText(scale) {
+      const map = { small: '小微', medium: '中小', large: '大型', unknown: '待确认' };
+      return map[scale] || scale || '待确认';
+    }
+
+    function showCreateModal() {
+      document.getElementById('modal-title').textContent = '添加企业';
+      document.getElementById('enterprise-id').value = '';
+      document.getElementById('enterprise-form').reset();
+      document.getElementById('enterprise-modal').classList.add('active');
+    }
+
+    function showEditModal(id, name, industry, scale) {
+      document.getElementById('modal-title').textContent = '编辑企业';
+      document.getElementById('enterprise-id').value = id;
+      document.getElementById('enterprise-name').value = name;
+      document.getElementById('enterprise-industry').value = industry;
+      document.getElementById('enterprise-scale').value = scale || 'unknown';
+      document.getElementById('enterprise-modal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('enterprise-modal').classList.remove('active');
+    }
+
+    async function handleEnterpriseSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('enterprise-id').value;
+      const data = {
+        name: document.getElementById('enterprise-name').value,
+        industry: document.getElementById('enterprise-industry').value,
+        scale: document.getElementById('enterprise-scale').value
+      };
+      try {
+        if (id) {
+          await enterpriseApi.update(parseInt(id), data);
+        } else {
+          await enterpriseApi.create(data);
+        }
+        closeModal();
+        loadEnterprises();
+      } catch (e) {
+        alert('保存失败: ' + e.message);
+      }
+    }
+
+    async function deleteEnterprise(id) {
+      if (!confirm('确定要删除该企业吗？')) return;
+      try {
+        await enterpriseApi.delete(id);
+        loadEnterprises();
+      } catch (e) {
+        alert('删除失败: ' + e.message);
+      }
+    }
+
+    async function showEnterpriseDetail(id) {
+      currentEnterpriseId = id;
+      try {
+        const enterprise = await enterpriseApi.get(id);
+        document.getElementById('detail-title').textContent = enterprise.name;
+        const metaConfig = enterprise.meta_config || {};
+        const modules = metaConfig.modules || [];
+        renderDetailContent(enterprise, modules);
+        document.getElementById('detail-modal').classList.add('active');
+      } catch (e) {
+        alert('加载企业详情失败: ' + e.message);
+      }
+    }
+
+    function renderDetailContent(enterprise, modules) {
+      const container = document.getElementById('detail-content');
+      const scaleText = getScaleText(enterprise.scale);
+      container.innerHTML = `
+        <div style="margin-bottom:20px;">
+          <p><strong>行业:</strong> ${enterprise.industry || '-'}</p>
+          <p><strong>规模:</strong> ${scaleText}</p>
+          <p><strong>创建时间:</strong> ${enterprise.created_at ? new Date(enterprise.created_at).toLocaleString('zh-CN') : '-'}</p>
+        </div>
+        <h4 style="margin-bottom:12px;">管理模块</h4>
+        <div class="grid-2" style="margin-bottom:20px;">
+          ${modules.length === 0 ? '<p style="color:#999;">暂无配置模块</p>' : modules.map(m => `
+            <div class="card" style="padding:16px;">
+              <h5 style="margin-bottom:8px;">${m.name} <span class="badge badge-${m.priority === 1 ? 'danger' : m.priority === 2 ? 'warning' : 'default'}">${m.priority === 1 ? '高优' : m.priority === 2 ? '中优' : '低优'}</span></h5>
+              <p style="font-size:13px;color:#666;">${m.metadata?.recommendation || '建议部署'}</p>
+              <div style="margin-top:8px;">
+                ${(m.features || []).map(f => `<span class="badge badge-default" style="margin-right:4px;">${typeof f === 'object' ? f.name : f}</span>`).join('')}
+              </div>
+              <div style="margin-top:12px;">
+                <button class="btn btn-primary" style="padding:6px 12px;font-size:12px;" onclick="openModulePage('${m.id}', ${enterprise.id})">进入管理</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function openModulePage(moduleId, enterpriseId) {
+      const pageMap = {
+        order_management: 'pages/orders.html',
+        inventory_management: 'pages/inventory.html',
+        accounts_receivable: 'pages/accounts.html'
+      };
+      const page = pageMap[moduleId];
+      if (page) {
+        window.location.href = `${page}?enterpriseId=${enterpriseId}`;
+      } else {
+        alert('该模块页面暂未实现');
+      }
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detail-modal').classList.remove('active');
+    }
+
+    document.getElementById('enterprise-form').addEventListener('submit', handleEnterpriseSubmit);
+
+    // 页面加载时获取企业列表
+    loadEnterprises();
+  </script>
+</body>
+</html>
