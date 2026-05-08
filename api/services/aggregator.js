@@ -86,7 +86,7 @@ function runPythonScraper(scriptName, args = []) {
                   source: scriptName,
                   reason: reason,
                   rawData: result
-                });
+                }).catch(e => console.error('[Aggregator] 创建人工待办失败:', e.message));
                 console.log(`[Aggregator] 已创建人工待办: ${args[0]} - ${scriptName}`);
               }
             } catch (e) {
