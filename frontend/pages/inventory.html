@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>库存管理</title>
+  <link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+  <div class="header">
+    <div class="container" style="display:flex;justify-content:space-between;align-items:center;">
+      <h1>库存管理</h1>
+      <a href="../index.html" class="btn" style="text-decoration:none;">返回首页</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h2>库存列表</h2>
+      <div style="margin-bottom:16px;">
+        <button class="btn btn-primary" onclick="showCreateModal()">+ 添加库存</button>
+      </div>
+      <div id="inventory-container">
+        <div class="empty-state"><p>暂无库存数据</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="inventory-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">添加库存</h3>
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+      </div>
+      <form id="inventory-form">
+        <input type="hidden" id="item-id">
+        <div class="form-group">
+          <label>物料名称</label>
+          <input type="text" id="item-name" required>
+        </div>
+        <div class="form-group">
+          <label>类别</label>
+          <select id="category">
+            <option value="raw_material">原材料</option>
+            <option value="finished_goods">成品</option>
+            <option value="semi_finished">半成品</option>
+            <option value="packaging">包装材料</option>
+          </select>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>数量</label>
+            <input type="number" id="quantity" value="0">
+          </div>
+          <div class="form-group">
+            <label>单位</label>
+            <input type="text" id="unit" placeholder="如：箱、吨、个">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>最低库存预警</label>
+          <input type="number" id="min-stock" value="0">
+        </div>
+        <div style="text-align:right;">
+          <button type="button" class="btn" onclick="closeModal()">取消</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script>
+    let enterpriseId = null;
+
+    function getQueryParam(name) {
+      return new URLSearchParams(window.location.search).get(name);
+    }
+
+    async function loadInventory() {
+      if (!enterpriseId) return;
+      try {
+        const items = await enterpriseApi.getInventory(enterpriseId);
+        renderInventory(items);
+      } catch (e) {
+        console.error('加载库存失败:', e);
+      }
+    }
+
+    function renderInventory(items) {
+      const container = document.getElementById('inventory-container');
+      if (!items || items.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>暂无库存数据</p><button class="btn btn-primary" onclick="showCreateModal()">添加库存</button></div>';
+        return;
+      }
+      container.innerHTML = `
+        <table class="table">
+          <thead>
+            <tr>
+              <th>物料名称</th>
+              <th>类别</th>
+              <th>数量</th>
+              <th>单位</th>
+              <th>最低库存</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map(item => `
+              <tr>
+                <td>${item.item_name}</td>
+                <td>${getCategoryText(item.category)}</td>
+                <td>${item.quantity}</td>
+                <td>${item.unit || '-'}</td>
+                <td>${item.min_stock || 0}</td>
+                <td><span class="badge ${getStockStatus(item.quantity, item.min_stock)}">${getStockStatusText(item.quantity, item.min_stock)}</span></td>
+                <td>
+                  <button class="btn btn-primary" style="padding:4px 8px;font-size:12px;" onclick='showEditModal(${JSON.stringify(item).replace(/'/g, "\\'")})'>编辑</button>
+                  <button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="deleteItem(${item.id})">删除</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function getCategoryText(cat) {
+      const map = { raw_material: '原材料', finished_goods: '成品', semi_finished: '半成品', packaging: '包装材料' };
+      return map[cat] || cat || '-';
+    }
+
+    function getStockStatus(qty, min) {
+      if (!min || min === 0) return 'badge-default';
+      return qty <= min ? 'badge-danger' : 'badge-success';
+    }
+
+    function getStockStatusText(qty, min) {
+      if (!min || min === 0) return '正常';
+      return qty <= min ? '库存不足' : '正常';
+    }
+
+    function showCreateModal() {
+      document.getElementById('modal-title').textContent = '添加库存';
+      document.getElementById('item-id').value = '';
+      document.getElementById('inventory-form').reset();
+      document.getElementById('inventory-modal').classList.add('active');
+    }
+
+    function showEditModal(item) {
+      document.getElementById('modal-title').textContent = '编辑库存';
+      document.getElementById('item-id').value = item.id;
+      document.getElementById('item-name').value = item.item_name;
+      document.getElementById('category').value = item.category || 'raw_material';
+      document.getElementById('quantity').value = item.quantity || 0;
+      document.getElementById('unit').value = item.unit || '';
+      document.getElementById('min-stock').value = item.min_stock || 0;
+      document.getElementById('inventory-modal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('inventory-modal').classList.remove('active');
+    }
+
+    async function handleSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('item-id').value;
+      const data = {
+        item_name: document.getElementById('item-name').value,
+        category: document.getElementById('category').value,
+        quantity: parseInt(document.getElementById('quantity').value) || 0,
+        unit: document.getElementById('unit').value,
+        min_stock: parseInt(document.getElementById('min-stock').value) || 0
+      };
+      try {
+        if (id) {
+          await enterpriseApi.updateInventory(enterpriseId, parseInt(id), data);
+        } else {
+          await enterpriseApi.createInventory(enterpriseId, data);
+        }
+        closeModal();
+        loadInventory();
+      } catch (e) {
+        alert('保存失败: ' + e.message);
+      }
+    }
+
+    async function deleteItem(id) {
+      if (!confirm('确定要删除该库存记录吗？')) return;
+      try {
+        await enterpriseApi.deleteInventory(enterpriseId, id);
+        loadInventory();
+      } catch (e) {
+        alert('删除失败: ' + e.message);
+      }
+    }
+
+    document.getElementById('inventory-form').addEventListener('submit', handleSubmit);
+
+    enterpriseId = getQueryParam('enterpriseId');
+    if (!enterpriseId) {
+      document.getElementById('inventory-container').innerHTML = '<div class="empty-state"><p>未指定企业ID</p><a href="../index.html" class="btn btn-primary">返回首页</a></div>';
+    } else {
+      loadInventory();
+    }
+  </script>
+</body>
+</html>
