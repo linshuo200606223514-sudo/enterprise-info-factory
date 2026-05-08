@@ -16,6 +16,19 @@ const { analyzeCompany, saveMetaConfig } = require('../../analyzer');
  * @returns {Promise<Object>} - 返回解析后的JSON结果
  */
 function runPythonScraper(scriptName, args = []) {
+  // 延迟加载避免循环依赖
+  let _manualIntervention = null;
+  function getManualIntervention() {
+    if (!_manualIntervention) {
+      try {
+        _manualIntervention = require('../server/services/manualIntervention');
+      } catch (e) {
+        // ignore
+      }
+    }
+    return _manualIntervention;
+  }
+
   return new Promise((resolve, reject) => {
     const scrapersDir = path.join(__dirname, '../../scrapers');
     const scriptPath = path.join(scrapersDir, `${scriptName}.py`);
@@ -58,6 +71,29 @@ function runPythonScraper(scriptName, args = []) {
         const trimmedStdout = stdout.trim();
         if (trimmedStdout) {
           const result = JSON.parse(trimmedStdout);
+
+          // 检查是否需要人工介入
+          if (result.requires_login || result.error) {
+            const reason = result.requires_login ? 'requires_login' : result.error;
+            console.log(`[Aggregator] ${scriptName} 需要人工介入: ${reason}`);
+
+            // 异步创建人工待办（不阻塞返回）
+            try {
+              const mi = getManualIntervention();
+              if (mi) {
+                mi.createTask({
+                  companyName: args[0] || '',
+                  source: scriptName,
+                  reason: reason,
+                  rawData: result
+                });
+                console.log(`[Aggregator] 已创建人工待办: ${args[0]} - ${scriptName}`);
+              }
+            } catch (e) {
+              console.error('[Aggregator] 创建人工待办失败:', e.message);
+            }
+          }
+
           resolve(result);
         } else {
           resolve({});
