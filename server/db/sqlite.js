@@ -23,9 +23,23 @@ class SqliteAdapter {
     this._save();
   }
 
-  exec(sql) {
-    this.db.exec(sql);
+  exec(sql, params = []) {
+    let result;
+    if (params.length > 0) {
+      const stmt = this.db.prepare(sql);
+      stmt.bind(params);
+      const columns = stmt.getColumnNames();
+      const values = [];
+      while (stmt.step()) {
+        values.push(stmt.get());
+      }
+      stmt.free();
+      result = [{ columns, values }];
+    } else {
+      result = this.db.exec(sql);
+    }
     this._save();
+    return result;
   }
 
   get(sql, params = []) {

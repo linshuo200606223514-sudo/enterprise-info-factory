@@ -1,7 +1,7 @@
 require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
-const { getDb, closeDb } = require('./index');
+const { ensureDb, getDb, closeDb } = require('./index');
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS enterprises (
@@ -51,10 +51,34 @@ CREATE TABLE IF NOT EXISTS accounts (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (enterprise_id) REFERENCES enterprises(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS company_cache (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_name TEXT NOT NULL UNIQUE,
+  data TEXT,
+  credit_score REAL,
+  credit_grade TEXT,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS alerts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  company_name TEXT NOT NULL,
+  change_type TEXT,
+  old_value TEXT,
+  new_value TEXT,
+  old_score REAL,
+  new_score REAL,
+  old_grade TEXT,
+  new_grade TEXT,
+  alert_sent INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  level TEXT DEFAULT '高'
+);
 `;
 
 async function initDatabase() {
-  const db = await getDb();
+  const db = await ensureDb();
 
   // 执行建表（sql.js 需要逐条执行）
   const statements = SCHEMA_SQL.split(';').filter(s => s.trim());
