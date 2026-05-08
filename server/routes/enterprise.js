@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const enterpriseService = require('../services/enterpriseService');
+const { runPythonScraper } = require('../../api/services/aggregator');
 
 // 响应格式化
 function apiResponse(res, data, message = '操作成功', statusCode = 200) {
@@ -181,6 +182,57 @@ router.delete('/enterprises/:id/accounts/:accountId', (req, res) => {
     apiResponse(res, null, '账款记录删除成功');
   } catch (e) {
     apiError(res, e);
+  }
+});
+
+// 多源工商数据采集
+router.get('/collect/:companyName/all', async (req, res) => {
+  const { companyName } = req.params;
+
+  try {
+    // 并行调用所有工商数据源
+    const scrapers = [
+      { name: 'qichacha', args: [companyName] },
+      { name: 'aiqicha', args: [companyName] },
+      { name: 'qixin', args: [companyName] },
+      { name: 'tianyancha', args: [companyName] }
+    ];
+
+    const results = await Promise.allSettled(
+      scrapers.map(scraper => runPythonScraper(scraper.name, scraper.args))
+    );
+
+    // 提取成功的结果
+    const successResults = [];
+    const errors = [];
+
+    results.forEach((result, index) => {
+      const scraperName = scrapers[index].name;
+      if (result.status === 'fulfilled' && result.value && !result.value.error) {
+        successResults.push(result.value);
+      } else {
+        errors.push({
+          source: scraperName,
+          error: result.reason?.message || result.value?.error || 'Unknown error'
+        });
+      }
+    });
+
+    // 合并数据
+    const { mergeCompanyData } = require('../../api/services/dataMerger');
+    const mergedData = mergeCompanyData(successResults);
+
+    res.json({
+      success: true,
+      data: {
+        merged: mergedData,
+        sources: successResults.map(r => r.source),
+        source_count: successResults.length,
+        errors: errors
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
