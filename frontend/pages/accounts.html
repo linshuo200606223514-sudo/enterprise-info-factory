@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>账款管理</title>
+  <link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+  <div class="header">
+    <div class="container" style="display:flex;justify-content:space-between;align-items:center;">
+      <h1>账款管理</h1>
+      <a href="../index.html" class="btn" style="text-decoration:none;">返回首页</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="grid-3" style="margin-bottom:20px;">
+      <div class="stat-card">
+        <div class="number" id="total-receivable">¥0</div>
+        <div class="label">应收账款</div>
+      </div>
+      <div class="stat-card" style="background:linear-gradient(135deg,#e74c3c,#c0392b);">
+        <div class="number" id="total-payable">¥0</div>
+        <div class="label">应付账款</div>
+      </div>
+      <div class="stat-card" style="background:linear-gradient(135deg,#f39c12,#e67e22);">
+        <div class="number" id="total-overdue">¥0</div>
+        <div class="label">逾期账款</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>账款列表</h2>
+      <div style="margin-bottom:16px;">
+        <button class="btn btn-primary" onclick="showCreateModal()">+ 添加账款</button>
+      </div>
+      <div id="accounts-container">
+        <div class="empty-state"><p>暂无账款数据</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="account-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">添加账款</h3>
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+      </div>
+      <form id="account-form">
+        <input type="hidden" id="account-id">
+        <div class="form-group">
+          <label>账款类型</label>
+          <select id="account-type" required>
+            <option value="receivable">应收账款</option>
+            <option value="payable">应付账款</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>客户/供应商名称</label>
+          <input type="text" id="customer-name">
+        </div>
+        <div class="form-group">
+          <label>金额</label>
+          <input type="number" id="amount" value="0" step="0.01" required>
+        </div>
+        <div class="form-group">
+          <label>到期日期</label>
+          <input type="date" id="due-date">
+        </div>
+        <div class="form-group">
+          <label>状态</label>
+          <select id="account-status">
+            <option value="unpaid">未付款</option>
+            <option value="paid">已付款</option>
+            <option value="overdue">已逾期</option>
+          </select>
+        </div>
+        <div style="text-align:right;">
+          <button type="button" class="btn" onclick="closeModal()">取消</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script>
+    let enterpriseId = null;
+
+    function getQueryParam(name) {
+      return new URLSearchParams(window.location.search).get(name);
+    }
+
+    async function loadAccounts() {
+      if (!enterpriseId) return;
+      try {
+        const accounts = await enterpriseApi.getAccounts(enterpriseId);
+        renderAccounts(accounts);
+        updateStats(accounts);
+      } catch (e) {
+        console.error('加载账款失败:', e);
+      }
+    }
+
+    function updateStats(accounts) {
+      const receivable = accounts.filter(a => a.type === 'receivable').reduce((sum, a) => sum + parseFloat(a.amount || 0), 0);
+      const payable = accounts.filter(a => a.type === 'payable').reduce((sum, a) => sum + parseFloat(a.amount || 0), 0);
+      const overdue = accounts.filter(a => a.status === 'overdue').reduce((sum, a) => sum + parseFloat(a.amount || 0), 0);
+      document.getElementById('total-receivable').textContent = '¥' + receivable.toFixed(2);
+      document.getElementById('total-payable').textContent = '¥' + payable.toFixed(2);
+      document.getElementById('total-overdue').textContent = '¥' + overdue.toFixed(2);
+    }
+
+    function renderAccounts(accounts) {
+      const container = document.getElementById('accounts-container');
+      if (!accounts || accounts.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>暂无账款数据</p><button class="btn btn-primary" onclick="showCreateModal()">添加账款</button></div>';
+        return;
+      }
+      container.innerHTML = `
+        <table class="table">
+          <thead>
+            <tr>
+              <th>类型</th>
+              <th>客户/供应商</th>
+              <th>金额</th>
+              <th>到期日期</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${accounts.map(a => `
+              <tr>
+                <td><span class="badge ${a.type === 'receivable' ? 'badge-success' : 'badge-warning'}">${a.type === 'receivable' ? '应收' : '应付'}</span></td>
+                <td>${a.customer_name || '-'}</td>
+                <td>¥${parseFloat(a.amount || 0).toFixed(2)}</td>
+                <td>${a.due_date || '-'}</td>
+                <td><span class="badge ${getStatusClass(a.status)}">${getStatusText(a.status)}</span></td>
+                <td>
+                  <button class="btn btn-primary" style="padding:4px 8px;font-size:12px;" onclick='showEditModal(${JSON.stringify(a).replace(/'/g, "\\'")})'>编辑</button>
+                  <button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="deleteAccount(${a.id})">删除</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function getStatusClass(status) {
+      return { paid: 'badge-success', unpaid: 'badge-warning', overdue: 'badge-danger' }[status] || 'badge-default';
+    }
+
+    function getStatusText(status) {
+      return { paid: '已付款', unpaid: '未付款', overdue: '已逾期' }[status] || status;
+    }
+
+    function showCreateModal() {
+      document.getElementById('modal-title').textContent = '添加账款';
+      document.getElementById('account-id').value = '';
+      document.getElementById('account-form').reset();
+      document.getElementById('account-modal').classList.add('active');
+    }
+
+    function showEditModal(account) {
+      document.getElementById('modal-title').textContent = '编辑账款';
+      document.getElementById('account-id').value = account.id;
+      document.getElementById('account-type').value = account.type || 'receivable';
+      document.getElementById('customer-name').value = account.customer_name || '';
+      document.getElementById('amount').value = account.amount || 0;
+      document.getElementById('due-date').value = account.due_date || '';
+      document.getElementById('account-status').value = account.status || 'unpaid';
+      document.getElementById('account-modal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('account-modal').classList.remove('active');
+    }
+
+    async function handleSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('account-id').value;
+      const data = {
+        type: document.getElementById('account-type').value,
+        customer_name: document.getElementById('customer-name').value,
+        amount: parseFloat(document.getElementById('amount').value) || 0,
+        due_date: document.getElementById('due-date').value,
+        status: document.getElementById('account-status').value
+      };
+      try {
+        if (id) {
+          await enterpriseApi.updateAccount(enterpriseId, parseInt(id), data);
+        } else {
+          await enterpriseApi.createAccount(enterpriseId, data);
+        }
+        closeModal();
+        loadAccounts();
+      } catch (e) {
+        alert('保存失败: ' + e.message);
+      }
+    }
+
+    async function deleteAccount(id) {
+      if (!confirm('确定要删除该账款记录吗？')) return;
+      try {
+        await enterpriseApi.deleteAccount(enterpriseId, id);
+        loadAccounts();
+      } catch (e) {
+        alert('删除失败: ' + e.message);
+      }
+    }
+
+    document.getElementById('account-form').addEventListener('submit', handleSubmit);
+
+    enterpriseId = getQueryParam('enterpriseId');
+    if (!enterpriseId) {
+      document.getElementById('accounts-container').innerHTML = '<div class="empty-state"><p>未指定企业ID</p><a href="../index.html" class="btn btn-primary">返回首页</a></div>';
+    } else {
+      loadAccounts();
+    }
+  </script>
+</body>
+</html>
