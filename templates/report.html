@@ -208,6 +208,27 @@
         {{/if}}
       </div>
 
+      <!-- 行业信息 -->
+      <div class="card">
+        <h2>行业信息</h2>
+        {{#if industryInfo}}
+        <div class="info-item">
+          <span class="info-label">企业信息</span>
+          <span class="info-value">{{industryInfo.enterpriseInfo}}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">新闻动态</span>
+          <span class="info-value">{{formatList industryInfo.newsDynamics}}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">价格行情</span>
+          <span class="info-value">{{formatList industryInfo.priceTrends}}</span>
+        </div>
+        {{else}}
+        <p class="empty">暂无行业信息</p>
+        {{/if}}
+      </div>
+
       <!-- 联系方式 -->
       <div class="card section-full">
         <h2>新闻动态</h2>

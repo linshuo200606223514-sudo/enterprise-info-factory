@@ -7,6 +7,25 @@ const path = require('path');
 const fs = require('fs');
 
 /**
+ * 模板辅助函数
+ */
+const helpers = {
+  /**
+   * 格式化列表为可读字符串
+   * @param {Array|string} list - 列表数据或字符串
+   * @returns {string} - 格式化后的字符串
+   */
+  formatList(list) {
+    if (!list) return '';
+    if (typeof list === 'string') return list;
+    if (Array.isArray(list)) {
+      return list.filter(Boolean).join('；');
+    }
+    return String(list);
+  }
+};
+
+/**
  * 简单的模板引擎 - 替换 {{variable}} 和 {{#if}}...{{/if}} 块
  * @param {string} template - HTML模板
  * @param {Object} data - 数据对象
@@ -17,6 +36,24 @@ function renderTemplate(template, data) {
 
   // 处理 {{variable}} 替换
   result = result.replace(/\{\{(\w+(?:\.\w+)*)\}\}/g, (match, path) => {
+    // 处理辅助函数如 {{formatList xxx}}
+    const funcMatch = path.match(/^(\w+)\s+(.+)$/);
+    if (funcMatch) {
+      const [, funcName, argPath] = funcMatch;
+      if (typeof helpers[funcName] === 'function') {
+        const keys = argPath.split('.');
+        let value = data;
+        for (const key of keys) {
+          if (value && typeof value === 'object' && key in value) {
+            value = value[key];
+          } else {
+            value = undefined;
+            break;
+          }
+        }
+        return helpers[funcName](value);
+      }
+    }
     const keys = path.split('.');
     let value = data;
     for (const key of keys) {
@@ -100,7 +137,8 @@ async function generateReport(data, options = {}) {
     businessInfo: data.businessInfo || data.business_info || null,
     contactInfo: data.contactInfo || data.contact_info || null,
     news: data.news || [],
-    webInfo: data.webInfo || data.web_info || null
+    webInfo: data.webInfo || data.web_info || null,
+    industryInfo: data.industryInfo || data.industry_info || null
   };
 
   // 渲染模板
