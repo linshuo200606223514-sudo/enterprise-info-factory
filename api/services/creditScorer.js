@@ -222,12 +222,141 @@ function parseRevenue(revenue) {
   return num;
 }
 
+/**
+ * 检测风险标签
+ * @param {Object} data - 企业数据
+ * @returns {Array} 风险标签数组
+ */
+function detectRiskTags(data) {
+  const tags = [];
+
+  // 失信：存在失信被执行人记录
+  if (data.judicial_risks) {
+    if (data.judicial_risks.some(r => r.type === '失信人')) {
+      tags.push('失信');
+    }
+    if (data.judicial_risks.some(r => r.type === '老赖')) {
+      tags.push('老赖');
+    }
+  }
+
+  // 经营异常
+  if (data.business_status && !['存续', '在业'].includes(data.business_status)) {
+    tags.push('经营异常');
+  }
+
+  // 欠税
+  if (data.tax_arrears || data.tax_status === '异常') {
+    tags.push('欠税');
+  }
+
+  // 新设企业
+  if (data.establishment_date) {
+    const years = getYearsSince(data.establishment_date);
+    if (years < 1) {
+      tags.push('新设企业');
+    }
+  }
+
+  return tags;
+}
+
+/**
+ * 计算信用评分
+ * @param {Object} data - 合并后的企业数据
+ * @returns {Object} 信用评分结果
+ */
+function generateCreditScore(data) {
+  if (!data || !data.company_name) {
+    return {
+      company_name: null,
+      credit_score: null,
+      credit_grade: null,
+      risk_tags: [],
+      dimensions: {},
+      summary: '数据不足，无法评分',
+      generated_at: new Date().toISOString()
+    };
+  }
+
+  // 计算各维度得分
+  const dimensions = {
+    basic: scoreBasic(data),
+    judicial: scoreJudicial(data),
+    operation: scoreOperation(data),
+    changes: scoreChanges(data),
+    sentiment: scoreSentiment(data)
+  };
+
+  // 计算加权总分
+  let totalScore = 0;
+  let totalWeight = 0;
+  let validDimensions = 0;
+
+  for (const [dim, weight] of Object.entries(DIMENSION_WEIGHTS)) {
+    const dimScore = dimensions[dim].score;
+    if (dimScore !== null) {
+      totalScore += dimScore * weight;
+      totalWeight += weight;
+      validDimensions++;
+    }
+  }
+
+  let creditScore = null;
+  let creditGrade = null;
+  let summary = '';
+
+  if (validDimensions >= 3 && totalWeight > 0) {
+    creditScore = Math.round(totalScore / totalWeight);
+
+    // 确定等级
+    for (const threshold of GRADE_THRESHOLDS) {
+      if (creditScore >= threshold.min) {
+        creditGrade = threshold.grade;
+        break;
+      }
+    }
+  } else {
+    summary = '数据不足，无法生成有效评分（有效维度少于3个）';
+  }
+
+  // 检测风险标签
+  const riskTags = detectRiskTags(data);
+
+  // 生成摘要
+  if (summary === '' && creditGrade) {
+    const gradeDesc = {
+      'A': '优质客户，低风险',
+      'B': '良好客户，轻微关注',
+      'C': '中等客户，适度关注',
+      'D': '高风险客户，谨慎合作',
+      'E': '极高风险，建议拒绝'
+    };
+    summary = gradeDesc[creditGrade];
+    if (riskTags.length > 0) {
+      summary += '，' + riskTags.join('、') + '需关注';
+    }
+  }
+
+  return {
+    company_name: data.company_name,
+    credit_score: creditScore,
+    credit_grade: creditGrade,
+    risk_tags: riskTags,
+    dimensions: dimensions,
+    summary: summary,
+    generated_at: new Date().toISOString()
+  };
+}
+
 module.exports = {
   scoreBasic,
   scoreJudicial,
   scoreOperation,
   scoreChanges,
   scoreSentiment,
+  detectRiskTags,
+  generateCreditScore,
   DIMENSION_WEIGHTS,
   GRADE_THRESHOLDS
 };
