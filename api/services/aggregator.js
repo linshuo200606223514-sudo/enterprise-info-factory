@@ -21,7 +21,7 @@ function runPythonScraper(scriptName, args = []) {
   function getManualIntervention() {
     if (!_manualIntervention) {
       try {
-        _manualIntervention = require('../server/services/manualIntervention');
+        _manualIntervention = require('../../server/services/manualIntervention');
       } catch (e) {
         // ignore
       }
