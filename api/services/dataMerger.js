@@ -119,4 +119,60 @@ function mergeCompanyData(sourcesData) {
   return merged;
 }
 
-module.exports = { mergeCompanyData, deduplicate };
+/**
+ * 生成数据质量报告
+ * @param {Object} mergedData - 合并后的数据（包含 _sources 字段）
+ * @param {Array} sourcesData - 原始数据源列表
+ * @returns {Object} 数据质量报告
+ */
+function generateDataQualityReport(mergedData, sourcesData) {
+  const fields = [
+    { key: "company_name", label: "企业名称", critical: true },
+    { key: "legal_representative", label: "法人代表", critical: true },
+    { key: "registered_capital", label: "注册资本", critical: false },
+    { key: "employee_count", label: "员工人数", critical: false },
+    { key: "business_status", label: "经营状态", critical: true },
+    { key: "address", label: "地址", critical: false },
+    { key: "unified_social_credit_code", label: "统一社会信用代码", critical: true },
+    { key: "registration_authority", label: "登记机关", critical: false },
+    { key: "company_type", label: "企业类型", critical: false },
+    { key: "business_scope", label: "经营范围", critical: false },
+    { key: "establishment_date", label: "成立日期", critical: false },
+    { key: "annual_revenue", label: "年营收", critical: false },
+    { key: "taxpayer_type", label: "纳税人资质", critical: false }
+  ];
+
+  const fieldReports = fields.map(f => ({
+    key: f.key,
+    label: f.label,
+    critical: f.critical,
+    populated: !!mergedData[f.key],
+    value: mergedData[f.key],
+    source: mergedData._sources ? mergedData._sources[f.key] : null
+  }));
+
+  const populatedCount = fieldReports.filter(f => f.populated).length;
+  const totalCount = fields.length;
+  const completenessScore = Math.round((populatedCount / totalCount) * 100);
+
+  const criticalFields = fieldReports.filter(f => f.critical);
+  const populatedCritical = criticalFields.filter(f => f.populated).length;
+
+  return {
+    summary: {
+      total_fields: totalCount,
+      populated_fields: populatedCount,
+      completeness_score: completenessScore,
+      critical_completeness: `${populatedCritical}/${criticalFields.length}`,
+      sources_count: sourcesData.length,
+      overall_status: completenessScore >= 80 ? "excellent" : completenessScore >= 60 ? "good" : "poor"
+    },
+    fields: fieldReports,
+    sources: sourcesData.map(s => ({
+      name: s.source,
+      field_count: s.data ? Object.keys(s.data).filter(k => s.data[k] && k !== '_sources').length : 0
+    }))
+  };
+}
+
+module.exports = { mergeCompanyData, deduplicate, generateDataQualityReport };
