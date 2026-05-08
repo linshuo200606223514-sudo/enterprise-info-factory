@@ -86,10 +86,11 @@ async function searchEnterprise(enterpriseName, options = {}) {
 
   console.log(`[Aggregator] 开始收集企业信息: ${enterpriseName}`);
 
-  // 并行调用百度搜索和天眼查采集器
+  // 并行调用百度搜索、天眼查和行业网站采集器
   const scrapers = [
     { name: 'baidu_search', args: [enterpriseName] },
-    { name: 'tianyancha', args: [enterpriseName] }
+    { name: 'tianyancha', args: [enterpriseName] },
+    { name: 'industry_sites', args: [enterpriseName] }
   ];
 
   const results = await Promise.allSettled(
@@ -120,6 +121,9 @@ async function searchEnterprise(enterpriseName, options = {}) {
       });
     }
   });
+
+  // 添加行业网站结果
+  aggregatedResult.industry = results[2].value;
 
   // 保存结果到JSON文件
   const outputPath = path.join(outputDir, `${enterpriseName}_${timestamp}.json`);
