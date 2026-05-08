@@ -85,8 +85,21 @@
       margin-bottom: 10px;
       border-radius: 0 10px 10px 0;
     }
-    .pain-point-item h4 { color: #856404; margin-bottom: 5px; }
-    .pain-point-item p { color: #856404; font-size: 14px; opacity: 0.8; }
+    .pain-point-item.high { border-left-color: #e74c3c; background: #ffe6e6; }
+    .pain-point-item.medium { border-left-color: #f39c12; background: #fff8e1; }
+    .pain-point-item.low { border-left-color: #27ae60; background: #e8f5e9; }
+    .pain-point-item h4 { color: #333; margin-bottom: 5px; }
+    .pain-point-item p { color: #666; font-size: 14px; }
+    .severity-tag {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      color: white;
+      font-weight: normal;
+    }
+    .severity-tag.high { background: #e74c3c; }
+    .severity-tag.medium { background: #f39c12; }
+    .severity-tag.low { background: #27ae60; }
     .btn {
       display: inline-block;
       background: linear-gradient(135deg, #667eea, #764ba2);

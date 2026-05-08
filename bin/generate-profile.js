@@ -85,18 +85,32 @@ function generateModulesHtml(modules) {
   }).join('');
 }
 
+// 数据源名称映射
+const sourceNames = {
+  'baidu_search': '百度搜索',
+  'tianyancha': '天眼查',
+  'industry_sites': '行业网站',
+  'default': '其他'
+};
+
 // 生成痛点 HTML
 function generatePainPointsHtml(modules) {
-  return modules.map(m => `
-      <div class="pain-point-item">
-        <h4>${m.name}</h4>
-        <p>${m.metadata?.recommendation || ''}</p>
-      </div>`).join('');
+  return modules.map(m => {
+    const severity = getSeverity(m.priority);
+    return `
+      <div class="pain-point-item ${severity}">
+        <h4>${m.name} <span class="severity-tag">${getPriorityText(m.priority)}</span></h4>
+        <p>${(m.metadata && m.metadata.recommendation) || ''}</p>
+      </div>`;
+  }).join('');
 }
 
 // 生成数据来源 HTML
 function generateSourcesHtml(sources) {
-  return sources.map(s => `<span class="source-tag">${s}</span>`).join('');
+  return sources.map(s => {
+    const name = sourceNames[s] || sourceNames['default'];
+    return `<span class="source-tag">${name}</span>`;
+  }).join('');
 }
 
 // 替换模板变量
