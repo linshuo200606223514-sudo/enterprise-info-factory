@@ -14,15 +14,22 @@
     "cli": "node bin/cli.js",
     "test": "node bin/cli.js search 测试公司"
   },
-  "keywords": ["enterprise", "info", "scraper", "baidu", "tianyancha"],
+  "keywords": [
+    "enterprise",
+    "info",
+    "scraper",
+    "baidu",
+    "tianyancha"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "commander": "^12.1.0",
-    "express": "^4.18.2",
-    "sql.js": "^1.10.0",
-    "mysql2": "^3.6.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "mysql2": "^3.6.0",
+    "node-cron": "^4.2.1",
+    "sql.js": "^1.10.0"
   }
 }
