@@ -73,4 +73,115 @@ router.delete('/enterprises/:id', async (req, res) => {
   }
 });
 
+// 订单路由
+router.get('/enterprises/:id/orders', (req, res) => {
+  try {
+    const orders = enterpriseService.getOrders(req.params.id);
+    apiResponse(res, orders);
+  } catch (e) {
+    apiError(res, e);
+  }
+});
+
+router.post('/enterprises/:id/orders', (req, res) => {
+  try {
+    const order = enterpriseService.createOrder(req.params.id, req.body);
+    apiResponse(res, order, '订单创建成功', 201);
+  } catch (e) {
+    apiError(res, e);
+  }
+});
+
+router.put('/enterprises/:id/orders/:orderId', (req, res) => {
+  try {
+    const order = enterpriseService.updateOrder(req.params.id, req.params.orderId, req.body);
+    apiResponse(res, order, '订单更新成功');
+  } catch (e) {
+    apiError(res, e);
+  }
+});
+
+router.delete('/enterprises/:id/orders/:orderId', (req, res) => {
+  try {
+    enterpriseService.deleteOrder(req.params.id, req.params.orderId);
+    apiResponse(res, null, '订单删除成功');
+  } catch (e) {
+    apiError(res, e);
+  }
+});
+
+// 库存路由
+router.get('/enterprises/:id/inventory', (req, res) => {
+  try {
+    const items = enterpriseService.getInventory(req.params.id);
+    apiResponse(res, items);
+  } catch (e) {
+    apiError(res, e);
+  }
+});
+
+router.post('/enterprises/:id/inventory', (req, res) => {
+  try {
+    const item = enterpriseService.createInventoryItem(req.params.id, req.body);
+    apiResponse(res, item, '库存记录创建成功', 201);
+  } catch (e) {
+    apiError(res, e);
+  }
+});
+
+router.put('/enterprises/:id/inventory/:itemId', (req, res) => {
+  try {
+    const item = enterpriseService.updateInventoryItem(req.params.id, req.params.itemId, req.body);
+    apiResponse(res, item, '库存记录更新成功');
+  } catch (e) {
+    apiError(res, e);
+  }
+});
+
+router.delete('/enterprises/:id/inventory/:itemId', (req, res) => {
+  try {
+    enterpriseService.deleteInventoryItem(req.params.id, req.params.itemId);
+    apiResponse(res, null, '库存记录删除成功');
+  } catch (e) {
+    apiError(res, e);
+  }
+});
+
+// 账款路由
+router.get('/enterprises/:id/accounts', (req, res) => {
+  try {
+    const accounts = enterpriseService.getAccounts(req.params.id);
+    apiResponse(res, accounts);
+  } catch (e) {
+    apiError(res, e);
+  }
+});
+
+router.post('/enterprises/:id/accounts', (req, res) => {
+  try {
+    const account = enterpriseService.createAccount(req.params.id, req.body);
+    apiResponse(res, account, '账款记录创建成功', 201);
+  } catch (e) {
+    apiError(res, e);
+  }
+});
+
+router.put('/enterprises/:id/accounts/:accountId', (req, res) => {
+  try {
+    const account = enterpriseService.updateAccount(req.params.id, req.params.accountId, req.body);
+    apiResponse(res, account, '账款记录更新成功');
+  } catch (e) {
+    apiError(res, e);
+  }
+});
+
+router.delete('/enterprises/:id/accounts/:accountId', (req, res) => {
+  try {
+    enterpriseService.deleteAccount(req.params.id, req.params.accountId);
+    apiResponse(res, null, '账款记录删除成功');
+  } catch (e) {
+    apiError(res, e);
+  }
+});
+
 module.exports = router;
