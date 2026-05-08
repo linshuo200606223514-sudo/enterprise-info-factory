@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>订单管理</title>
+  <link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+  <div class="header">
+    <div class="container" style="display:flex;justify-content:space-between;align-items:center;">
+      <h1>订单管理</h1>
+      <a href="../index.html" class="btn" style="text-decoration:none;">返回首页</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h2>订单列表</h2>
+      <div style="margin-bottom:16px;">
+        <button class="btn btn-primary" onclick="showCreateModal()">+ 新建订单</button>
+      </div>
+      <div id="orders-container">
+        <div class="empty-state"><p>暂无订单数据</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 模态框 -->
+  <div class="modal" id="order-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">新建订单</h3>
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+      </div>
+      <form id="order-form">
+        <input type="hidden" id="order-id">
+        <div class="form-group">
+          <label>订单号</label>
+          <input type="text" id="order-no" required>
+        </div>
+        <div class="form-group">
+          <label>客户名称</label>
+          <input type="text" id="customer-name">
+        </div>
+        <div class="form-group">
+          <label>产品名称</label>
+          <input type="text" id="product-name">
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>数量</label>
+            <input type="number" id="quantity" value="0">
+          </div>
+          <div class="form-group">
+            <label>单价</label>
+            <input type="number" id="price" value="0" step="0.01">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>交货日期</label>
+          <input type="date" id="delivery-date">
+        </div>
+        <div class="form-group">
+          <label>状态</label>
+          <select id="order-status">
+            <option value="pending">待处理</option>
+            <option value="processing">生产中</option>
+            <option value="completed">已完成</option>
+            <option value="cancelled">已取消</option>
+          </select>
+        </div>
+        <div style="text-align:right;">
+          <button type="button" class="btn" onclick="closeModal()">取消</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="../assets/js/api.js"></script>
+  <script>
+    let enterpriseId = null;
+
+    function getQueryParam(name) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(name);
+    }
+
+    async function loadOrders() {
+      if (!enterpriseId) return;
+      try {
+        const orders = await enterpriseApi.getOrders(enterpriseId);
+        renderOrders(orders);
+      } catch (e) {
+        console.error('加载订单失败:', e);
+      }
+    }
+
+    function renderOrders(orders) {
+      const container = document.getElementById('orders-container');
+      if (!orders || orders.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>暂无订单数据</p><button class="btn btn-primary" onclick="showCreateModal()">新建订单</button></div>';
+        return;
+      }
+      container.innerHTML = `
+        <table class="table">
+          <thead>
+            <tr>
+              <th>订单号</th>
+              <th>客户</th>
+              <th>产品</th>
+              <th>数量</th>
+              <th>单价</th>
+              <th>金额</th>
+              <th>状态</th>
+              <th>交货日期</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${orders.map(o => `
+              <tr>
+                <td>${o.order_no}</td>
+                <td>${o.customer_name || '-'}</td>
+                <td>${o.product_name || '-'}</td>
+                <td>${o.quantity}</td>
+                <td>¥${parseFloat(o.price || 0).toFixed(2)}</td>
+                <td>¥${(o.quantity * o.price).toFixed(2)}</td>
+                <td><span class="badge ${getStatusClass(o.status)}">${getStatusText(o.status)}</span></td>
+                <td>${o.delivery_date || '-'}</td>
+                <td>
+                  <button class="btn btn-primary" style="padding:4px 8px;font-size:12px;" onclick='showEditModal(${JSON.stringify(o).replace(/'/g, "\\'")})'>编辑</button>
+                  <button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="deleteOrder(${o.id})">删除</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function getStatusClass(status) {
+      const map = { pending: 'badge-warning', processing: 'badge-default', completed: 'badge-success', cancelled: 'badge-danger' };
+      return map[status] || 'badge-default';
+    }
+
+    function getStatusText(status) {
+      const map = { pending: '待处理', processing: '生产中', completed: '已完成', cancelled: '已取消' };
+      return map[status] || status;
+    }
+
+    function showCreateModal() {
+      document.getElementById('modal-title').textContent = '新建订单';
+      document.getElementById('order-id').value = '';
+      document.getElementById('order-form').reset();
+      document.getElementById('order-no').value = 'ORD' + Date.now().toString().slice(-6);
+      document.getElementById('order-modal').classList.add('active');
+    }
+
+    function showEditModal(order) {
+      document.getElementById('modal-title').textContent = '编辑订单';
+      document.getElementById('order-id').value = order.id;
+      document.getElementById('order-no').value = order.order_no;
+      document.getElementById('customer-name').value = order.customer_name || '';
+      document.getElementById('product-name').value = order.product_name || '';
+      document.getElementById('quantity').value = order.quantity || 0;
+      document.getElementById('price').value = order.price || 0;
+      document.getElementById('delivery-date').value = order.delivery_date || '';
+      document.getElementById('order-status').value = order.status || 'pending';
+      document.getElementById('order-modal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('order-modal').classList.remove('active');
+    }
+
+    async function handleSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('order-id').value;
+      const data = {
+        order_no: document.getElementById('order-no').value,
+        customer_name: document.getElementById('customer-name').value,
+        product_name: document.getElementById('product-name').value,
+        quantity: parseInt(document.getElementById('quantity').value) || 0,
+        price: parseFloat(document.getElementById('price').value) || 0,
+        delivery_date: document.getElementById('delivery-date').value,
+        status: document.getElementById('order-status').value
+      };
+      try {
+        if (id) {
+          await enterpriseApi.updateOrder(enterpriseId, parseInt(id), data);
+        } else {
+          await enterpriseApi.createOrder(enterpriseId, data);
+        }
+        closeModal();
+        loadOrders();
+      } catch (e) {
+        alert('保存失败: ' + e.message);
+      }
+    }
+
+    async function deleteOrder(id) {
+      if (!confirm('确定要删除该订单吗？')) return;
+      try {
+        await enterpriseApi.deleteOrder(enterpriseId, id);
+        loadOrders();
+      } catch (e) {
+        alert('删除失败: ' + e.message);
+      }
+    }
+
+    document.getElementById('order-form').addEventListener('submit', handleSubmit);
+
+    enterpriseId = getQueryParam('enterpriseId');
+    if (!enterpriseId) {
+      document.getElementById('orders-container').innerHTML = '<div class="empty-state"><p>未指定企业ID</p><a href="../index.html" class="btn btn-primary">返回首页</a></div>';
+    } else {
+      loadOrders();
+    }
+  </script>
+</body>
+</html>
