@@ -134,6 +134,9 @@ function mergePainPoints(ruleResults, aiResults) {
  * @returns {Object} 元模型配置
  */
 function generateMetaConfig(companyData, painPoints) {
+  // 优先使用 enterpriseName，其次用 name，最后用中文"未知企业"
+  const companyName = companyData.enterpriseName || companyData.name || companyData.enterprise_name || '未知企业';
+
   // 转换痛点为模块配置
   const modules = painPoints.map(painPoint => ({
     id: getModuleName(painPoint.category),
@@ -145,7 +148,7 @@ function generateMetaConfig(companyData, painPoints) {
         status: 'recommended'
       },
       {
-        name: painPoint.suggestion || '高级功能',
+        name: painPoint.suggestion || painPoint.recommendation || '高级功能',
         status: 'recommended'
       }
     ],
@@ -161,7 +164,7 @@ function generateMetaConfig(companyData, painPoints) {
   // 构建完整配置
   return {
     company: {
-      name: companyData.companyName || '未知企业',
+      name: companyName,
       scale: getScale(companyData.employees || companyData.employee_count),
       industry: companyData.industry || '造纸箱'
     },
@@ -182,16 +185,15 @@ function generateMetaConfig(companyData, painPoints) {
  */
 async function saveMetaConfig(metaConfig, outputDir) {
   // 创建输出目录（如果不存在）
-  const metaConfigDir = path.join(outputDir, 'meta-config');
-  if (!fs.existsSync(metaConfigDir)) {
-    fs.mkdirSync(metaConfigDir, { recursive: true });
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
   }
 
   // 生成文件名
   const companyName = metaConfig.company.name;
-  const safeName = companyName.replace(/[<>:"/\\|?*]/g, '_');
+  const safeName = companyName.replace(/[<>:"/\\|?*\s]/g, '_');
   const fileName = `${safeName}_meta_config.json`;
-  const filePath = path.join(metaConfigDir, fileName);
+  const filePath = path.join(outputDir, fileName);
 
   // 保存文件
   const content = JSON.stringify(metaConfig, null, 2);

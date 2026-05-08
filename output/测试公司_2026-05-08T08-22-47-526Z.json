@@ -1,0 +1,289 @@
+{
+  "enterpriseName": "测试公司",
+  "collectedAt": "2026-05-08T08:23:39.899Z",
+  "sources": [
+    "baidu_search",
+    "tianyancha",
+    "industry_sites"
+  ],
+  "data": {
+    "baidu_search": {
+      "source": "baidu_search",
+      "company": "测试公司",
+      "search_results": [
+        {
+          "title": "测试公司 - 实时智能回复",
+          "url": "https://www.baidu.com/baidu.php?url=Ks00000EAMrnlPLIyV4kXPMjfKm0XyGX3eRJS8RLzxMnof-mw77mgG0Qt53kxihAbYRw3VSoBOBvbqZx2siJ-46-6cCzRT1d1211uzjB1Jjct4fsJv5iEKbjElS5Y4UJPTQQeatCHDZwuYqGzDKI6eQW_devyH0YfFqNrgzJL1qliQ3bTgJRULdo0VDe-4mll6pgyhkm7aBttuFjizo5Pctf-PDm.DR_NR2Ar5Od66u8utovTyKDDUlamrjQs1RXzWIj01JH7feEY3hAX1_LvI2Ih1IaMGzuPeQPdXeFbE99vgUCX5mkblkdr3nUrGQ3_TQ7xg6knI-SeWvfqMWMu9tXM5vNSPhX4Phe5g3eEZxgEvU_hOWgzvTVMgvmD1p51nY2EO0Mfk9zxyqdjoalQyORkOsrZlqELYx-3xSKSgvNOe5lOztrMl5qxoPSLt8yAJeO_pEC1LsOVOjOvcELeSyZSF3LmPgdecxvO9qXguSxFISXGLaMWlOMuSEO7GdTAxqao5EOvxZvxJmAmpn5exS85NIf3kxVOlOSkSUQxSEtLetNYyyZ9OPgoOgSUqSZlPNdarZdWqxqMtE_OeZO0dxSj5jSLt5oS9CSgoSIMlOtyoqx48WeOzntXKtPAZSFsXxlZVOPEOfJdSE4vxoOVxero5YmqAEdhOU_4mx3M4oVrxvNOe5lOztrMl5qxoPlOgdYlrzoKCEqx1_Og5Os54AEdhqxoEOvx3M4Ed3Pgdl5qMw3tr5lrj1SOYTxgCdqIXFBQqOgqDvgqa5tLeSMqTLeOSEVOPSLYLHuxYrnvg5YwxVsLpJO-d9JmerVqLQqAFBQqOgqDvgqa5tLeSMqTLeOSEVOPSLYLHuxYrnvg5YwxVsLpJOZCBOx_WdNtZw7SOt8v2EHkBoYd1xEq5OmlsdnIMySe-ElcljZhqMOsxCxCynvX5wt5Om4x5xuutE-utVvhl1ItEZO6pOYQQQQQQ5g93toEqX1Z4OMtShzzzzzzzzzzzkM1u4xY5SQWgxqUqTP--hggJex1e5Uo___ObprL6WtOqJzzz14IPMsvyT5Z94x5Gt48Z938tlr1OuElryBOO_U5NMWstEMYSTLjstgXIZuO_dgxwzOVS1OBHq7K54O1S81SWOVIh1guuuu-OCOYxl5qZSWOwOCOYxl5q75SEvTglS_IYPZVknXLqXwqXegwoLurZvOegzxemOpGyAp7WIguuv20.U1Yk0ZDq_8Q2dQhoze30TA-W5H00Ijv3z_E6Erzz3oEl8Ub0pyYqnWcd0ATqTZnz0ZNG5yF9pywd0ZKGujYkr0KWpyfqPj00UgfqPjD4g1DsnHIxnW0dnNtknjD4g1nLr7t1rjKxn1msnfKopHYk0ZFY5iYk0AFG5HDdr7tznjf0UynqPjD4g1DsnHIxnW0dnNtknjD4g1nLr7t1rjKxn0KkTA-b5H00TyPGujYs0ZFMIA7M5H00Uh7GujYs0A49IZ0qn0KWIyfqPjc4nWDdn1n40A7B5HKxn0K-ThTqn0KsTjYs0A4vTjYsQW0snj0snj0s0AdYTjYs0AwbUL0qn0KzpWYs0Aw-IWdsmsKhIjYs0ZKC5H00ULnqn0KBI1Ykn0K8IjYs0ZPl5fK9TdqGuAnqTZnVmvY0pywW5R9awfKspZw45fKYmgFMugfqn17xn1DYg1DknfKYIgnqrHmzPH03PW6snjnYPWRLPH6dPfKzug7Y5HDLP16znW6dPW63rjT0pynqn0K1pyfqmvFbnhR3PHTsnj0zm10LnfKWTvYqnHmLPbPafWDLrjfYPRR4f6K_mMnqn0K9m1Yk0ZK85H00TydY5H00Tyd15H00uANYgvPsmHYs0ZGY5H00mMub5Hc0UyPxuMFEUHYsg1Kxn7tsg1Kxn7ts0Aw9UMNBuNqsUA78pyw15HKxn7tsg1Kxn7tsg100TA7Ygvu_myTqn0Kbmv-b5H00ugwGujYVnfK9TLKWm1Ys0ZNspy4Wm1Ys0Z7VuWYs0AuWIgfqn0KGTvP_5H00mywhUA7M5HD0UAuW5H00uAPWujY0IZF9uARqn0KBuA-b5fKBIjY10Aq9IZTqn0KEIjYk0AqzTZfqnBnsc1bzc1nWn1RvPHmdnWnzranznH01PinznH01Pi3snj0snj0Wnzn1c10WQinsQW01rHRdninkQW0snj0snankc10Wn1csnHD8nj0snj0sc10Wnansc10Wninsc100mh78pv7Wm1YzPW0sc1cYP1DWnWmsnankrHDz0Z91IZRqPWfzrj0vPjn0TNqv5H08nj7xna3sn7tsQW0sg108njwxna3sn-tsQWb1g1D8nWPxni3zndtsg1DLnjDkg100mMPxTZFEuA-b5H00ThqGuhk9u1YY0Ad-IjYs0APv5fKGTdqWTADqn0KWTjYs0AN1IjYs0Z7MIvfqn0KETjDqnW030ZKsPjYkn0KWThnqnWbkn1f&us=newvui&xst=T1YkPjm3P10dPWT4PHDvrjR3P163rNtznWNxn07L5UW2zSateQQB8OJ48f7k5UQBzVi4Jt8S0gRqPWfzrj0vPjnKIjYkP1T3nWc3PHm40ydk5H0an0cV0yPC5yuWgLKW0ykd5H0Kmv3qmh7GuZRKTMfqn0DzrjbkrjcLnWc&word=&us=newvui&xst=T1YkPjm3P10dPWT4PHDvrjR3P163rNtznWNxn07L5UW2zSateQQB8OJ48f7k5UQBzVi4Jt8S0gRqPWfzrj0vPjnKIjYkP1T3nWc3PHm40ydk5H0an0cV0yPC5yuWgLKW0ykd5H0Kmv3qmh7GuZRKTMfqn0DzrjbkrjcLnWc&word=&ck=0.0.0.0.0.0.0.0&shh=www.baidu.com",
+          "abstract": "测试公司 - 实时智能回复"
+        },
+        {
+          "title": "长春 测试单位 第三方检测分析机构",
+          "url": "https://www.baidu.com/baidu.php?url=Ks00000EAMrnlPLIyCya5RGRaqYuHw5dq5GXD0XI_rtcXdWGzJMYNDkw6Fvrlkr0u8q3TvvFbR0mvGLZYWSpkS-bB_RI00mrwlG28TOEovub7Vh_BAFo-ora_EXvnQWf2ca9l1p7d7VdwqgmI2wto40kZAFz-OujxiSiW4jwz9N20Zl0_WMbMntf2xUvYcDB3pYb4xCDTjRQro_4lokDrPGGlkHd.DR_NR2Ar5Od66u8utovTyKDDUlamrjQseVRy4YnjrGnNj8OHBmzX5WgIEe5AlE_lUqSVhZxX-Mxx8_erkQPdBXVqLQqAFBQqOgqDvgqa5tLeSMqTLeOSEVOPSLYLHuxYrnvg5YwxVsLpJOoYwxEvwlJSjCBOxdq_get5j7gxskNLqMggBmBOxdOwP-OfWOPSOGOgPSOOoex1xVqPYvgqjWP-1qDgeTPvJ8ZojRkvImphr1oxIzLqDIKW1X1O35Y5YQAU5ZCSZO_TEME__9SNhgO6xtNXEqOuMYxqBSzzzzz1d3X52eOg_kSx4O5G_____________SW_9tx3MlLxodOM_B___OtAeO_ppOqhAzzz14XPMs4UEUuo__SgHutP-MostXNLSEOBklGVMUSPxlM4LYmx1OMqXZOBkxJxCRROtgLIjOwOvxSKe5rU93XQ8Wwg43YOBlo______LxYxl5qZSWOwOCOYxl5qZSWOVxe5SEd3kJN9h9m3vIMW3J0.U1Yz0ZDq_8Q2dQhoze30TA-W5H00Ijvz3_oRVpgr8sKGUHYznWR0u1dsT1c0Iybqmh7GuZR0TA-b5HD30APGujYYn0KVIjYknjDLg1nsnjIxnW0dnNt4nHT3g1DsnH-xn1msnfKopHYs0ZFY5iYk0AFG5HDdr7tznjf0UynqnH0kPdt1nj0Lg1csPH7xrHDLr7tknjD4g100TgKGujYs0Z7Wpyfqn0KzuLw9u1Ys0A49pyfqn0K8mgws5H00mLNb5HfzrHbknWc4P0K9mWYsg100ugFM5Hc0TZ0qn0K8IM0qna3snj0snj0sn0KVIZ0qn0KbuAqs5H00ThCqn0KbugmqTAn0uMfqn0KspjYs0Aq15H00mMTqnH00UMfqn0K1XWY0mgPxpywW5gK1QyPV0A-bm1dcfbR0TA9YXHY0IA7zuvNY5Hm1g1KxnH0sn0KYIgnqnHnvnWRsPj04n1D4njf1PHTdnW00ThNkIjYkP1T3nWc3PHm3rj6L0A-W5H00Tv-b5yPBujF-rjRLnj0snhnsP1D0mLPV5HDvP1ujfbckP16YPjN7rRc0UAF15H00mynqnfKsUWYs0Z7VIjYs0Z7VT1Ys0Aw-I7qWTADqn0KlIjYs0AFvujYz0AdWgvuzUvYqn7tsg1Kxn7tsg100uA78IyF-gLK_my4GuZnqn7t1njm1nHmkPH7xn7tsg1Kxn0Ksmgwxuhk9u1Ys0AwWpyfqn0K-IA-b5iYk0A71TAPW5H00IgKGUhPW5H00Tydh5H00uhPdIjYs0A-1mvsqn0K9uAu_myTqnfK_uhnqn0KbmvPb5fKYTh7buHYs0AFbpyfq0AFY5H00Uv7YI1Ys0AqY5HD0ULFsIjYzc10Wn1_krj_1nj_LrH_knW0WnH0snan1rHR1rHfdrjbLc1c3nWcdc1c3nWcdQW0snj0snan1c1nePj_vr1cLc10WQinsQW01rHRdninkQW0snj0snankc10Wna3snj0snj0Wnansc10Wnankc10Wn0KBmy4omyPW5HD3rj6WnHT4Pankrj63c1D1rj60XZPYIHY3njR3rj03PsKkgLmqna3snNtsQW0sg108njKxna3sP7tsQW01g108rHFxni3zndtkQWc1g1Kxn7ts0AF1gLKzUvwGujYs0ZFEpyu_myTqn0KVugfqn0KWIWY0pgPxmLK95H00mL0qn0K-TLfqn0KkuLIb5H00UL0k5Hcsr0KsTjfqnH00mLFW5Hc4nH6k&us=newvui&xst=T1YkPjm3P10dPWT4PHDvrjR3P163rNtznWNxnf7L5UQBzVidGTle0gDq_8Q2dQhoze3KIHY3njR3rj03Ps7Y5HDLP16znW6dPWbKUgDqn0cs0BYKmv6quhPxTAnKUZRqn07WUWdBmy-bIf7zIjYs0HcdPjn3rH01rHn&cegduid=rj0drj6srjT&solutionId=45196947&word=&ck=0.0.0.0.0.0.0.0&shh=www.baidu.com",
+          "abstract": "长春 测试单位 第三方检测分析机构\n最近11分钟前有人拨打电话咨询问题\n1983年创立,国家检验检测中心,专业第三方权威测试单位,服务涵盖检测,测试,分析,研发,出具CMA/CNAS全国认可报告,一站式检测服务,高端测试单位,立刻咨询工程师报价!\n建材/金属/化工环境/医药/食品设备/生物/电子\n广测检测研究所 2026-05广告"
+        },
+        {
+          "title": "长春 测试单位-CTI华测检测 专业检测测试认证中心",
+          "url": "https://www.baidu.com/baidu.php?url=Ks00000EAMrnlPLIyEfHVKhGcVGhVrIdvDKG6X34hv3ewo0TfqEaqtfdZvwO5o0lzPNC15dLkJrMzjXDmGy8OYRnzFxQ2foR6XpSERprbwdY_nc3pvxM6yUJAqyBjrSEvT63Bf8Oo-0umFa7HrKnTj-u9NjLr-ASYCvzGcZrMDQwpEoFN7l5blK5VNwd5bRBVIVh3RqpBq46TWe2mrLR0zrDZfzA.7b_NR2Ar5Od66u8utovTyKDDUlamrjQsqDIZ6ecAIimJZISMDk_lIXHgEEtXPLWvUPSeIEooHkLptMW8tUVhzOudE84xCknwxElOChzOCwOhOxYOohOxOdqE4EvShlUQS9khz4SBQq8AeNgSUCBOx_WdNtZw7SOuvxho93OhzlSA2E4TX8EDk7SOoSBUQS9ZSUqOHS8UqOOgvOhOUlUG_ElZAUQMlcEv3UVNTgyAGW_lsdnIMySe-ElcljZhqMOsxCxCynvX5wt5Om4x5xuu7tonWSv5gSxuMYxqBSzzzzz1d3X52eOg_kSx4O5G____________zOjgO35SkzLqr9Md_9___z1xylpQvleQQ5-OoBkSxeIq---MzlU59__qXZWz8OdOty5NP_3pPxlM4LYmx1OMqXZOBkxJxCRROMOdOhOdEOvIMSdzen-K54O1S_54ESKt5OmICCFO5Sxd4IM4t-YgeXleOpOxYxqWtvg4yyyyyUEl5qZSWOwOCOYxl5qZSWOwkTEJhPi_nYQAeuvurkf.U1Y10ZDq_8Q2dQhoze30TA-W5H00Ijvz3_oRVpgr8sKGUHYznWR0u1dsT1c0Iybqmh7GuZR0TA-b5HD30APGujYYn0KVIjYknjDLg1nknWwxrHDLr7tznjRkg1DsnH-xn1msnfKopHYs0ZFY5iYk0AFG5HDdr7tznjf0UynqnH0kPdt1nHcYg1bkP19xnW0dnNtknjD4g100TgKGujYs0Z7Wpyfqn0KzuLw9u1Ys0A49pyfqn0K8mgws5H00mLNb5Hfzrjb4nHRsP6K9mWYsg100ugFM5Hc0TZ0qn0K8IM0qna3snj0snj0sn0KVIZ0qn0KbuAqs5H00ThCqn0KbugmqTAn0uMfqn0KspjYs0Aq15H00mMTqnH00UMfqn0K1XWY0mgPxpywW5gK1QyPV0A-bm1dcfbR0TA9YXHY0IA7zuvNY5Hm1g1KxnH0sn0KYIgnqnHDvrjmkrj01njnvnWR4rjb3rjm0ThNkIjYkP1T3nWc3PHm3rj6L0A-W5H00Tv-b5yPBujF-rjRLnj0snhnsP1D0mLPV5HDvP1ujfbckP16YPjN7rRc0UAF15H00mynqnfKsUWYs0Z7VIjYs0Z7VT1Ys0Aw-I7qWTADqn0KlIjYs0AFvujYz0AdWgvuzUvYqn7tsg1Kxn7tsg100uA78IyF-gLK_my4GuZnqn7tzn1fLrjmsPW7xn7tsg1Kxn0Ksmgwxuhk9u1Ys0AwWpyfqnHb4nWc4Pjf0ugwGujYVnfK9TLKWm1Ys0ZNspy4Wm1Ys0Z7VuWYs0AuWIgfqn0KGTvP_5H00mywhUA7M5HD0UAuW5H00uAPWujY0IZF9uARqn0KBuA-b5fKBIjYs0Aq9IZTqn0KEIjYk0AqzTZfqnBnsc1D3c1Dsnj0Wn1f1P1msnHbvranzPW0snanzPW0sna3snj0snj0Wnznknj0sc10WP1fWna3sn1bdPHDWni3snj0snj0Wninsc108nj0snj0sc10WnWb3PjfLnWcknHfWnansc10Wnans0AF9UhV9mvnqnHczninknHRzc1DznWDWrjb30Z91IZRqPjmzPj61PHm0TNqv5H08nj7xna3sn7tsQW0sg108njPxna3sn-tsQWbYg1D8nWNxni3zPNtsg1DLnjDkg100mMPxTZFEuA-b5H00ThqGuhk9u1Ys0Ad-IjYs0APv5fKGTdqWTADqn0KWTjYs0AN1IjYs0Z7MIvfqn0KETjDqnHm0TZ0Y5Hc0mLFW5HcknHR4&us=newvui&xst=T1YkPjm3P10dPWT4PHDvrjR3P163rNtznWNxn67L5UQBzVidGTle0gDq_8Q2dQhoze3KIHYYPWcYrjndP67Y5HDLP16znW6dPWbKUgDqn0cs0BYKmv6quhPxTAnKUZRqn07WUWdBmy-bIf7zIjYs0Hn1PWcsPjbvPWn&cegduid=PjmzPj61PHm&solutionId=24103438&word=&ck=0.0.0.0.0.0.0.0&shh=www.baidu.com",
+          "abstract": "长春 测试单位-CTI华测检测 专业检测测试认证中心\n最近37分钟前有人咨询相关问题\n测试单位-优选CTI华测,一站式检测认证服务中心,具有CMA,CNAS资质,欧盟CE认证等,先进的设备,在全球90多个城市设立260+服务网络,年报告量达400万.\n服务区域:检测认证服务检验,审核与评估医学医药特色服务更多\n测试服务\nRoHS,reach\n认证服务\n碳足迹,碳中和,CCC\n检验服务\n工业产品检验\n审核评估\n定制化咨询服务\n查看更多相关信息\nCTI华测检测官网 2026-05广告"
+        },
+        {
+          "title": "长春 测试机构-CMA/CNAS检测机构",
+          "url": "https://www.baidu.com/baidu.php?url=Ks00000EAMrnlPLIyVVVw2dXOi7VO4eVCgk_I_NttYzxDunwjiMD9Joo1q42Dger52PdmJjwbLRC0RFxm5RiCef-n56rmGZYi3TBav4dehyMEPBEniqvkBx6UjE1qaBva_qQWr1zOLRDDRDYwRAP3Vr3pM00EbTkXVuiANPGS6DBgCMp7B_WVaxZkorcVyfGjEg2HSxL1THGuNM0q1-SXhTYlTYM.7R_NR2Ar5Od66u8utovTyKDDUlamrjQsqVOYwRmmAIimJZISMDkE9ElRe8rVhlEugx3Ld_Gd_q-Lu3LePxHujxdWJIsmvIigkm3y2SVqLQqAFBQqOgqDvgqa5tLeSMqTLeOSEVOPSLYLHuxYrnvg5YwxVsLpJSjCBOx_WdNtZw7SOoemJqITgeqqYgeXMO_IIXFBQqOgqDvgqa5tLeSMqTLeOSEVOPSLYLHuxYrnvg5YwxVsLpJqxyAGW_lsdnIMySe-ElcljZhqMOsxCxCynvX5wt5Om4x5xuuoSN--xdqUZsYxqTP------MostXNLSEuWtO1SxHuuuuuuuuuuuuO35S0MlrjSFYqEYxjSxg7uum1uuSxOuSAAzzzzuLuMtOZvvpeQ5-Yvxjuult5Z-IOovxYxqo_vT7AEqHteln54O1SEjOk5HSQJ81tOSEtL4VUOu-OxEtxLOrU93XQErW_OvUeQQQQ5l5qZSWOwOCOYxl5qZSWOwOZQMOPSEBGyAp7WI8zNJ0.U1YY0ZDq_8Q2dQhoze30TA-W5H00Ijvz3_oR8OJ48fKGUHYznWR0u1dsT1c0Iybqmh7GuZR0TA-b5HD30APGujYYn0KVIjYknjDLg1nsnjIxnW0dnNt4nHT3g1DsnH-xn1msnfKopHYs0ZFY5iYk0AFG5HDdr7tznjf0UynqnH0kPdt1nj0Lg1csPH7xrHDLr7tknjD4g100TgKGujYs0Z7Wpyfqn0KzuLw9u1Ys0A49pyfqn0K8mgws5H00mLNb5HcsnHT1PWc4rHb0mycqn7ts0ANzu1Yz0ZKs5H00UMus5H08nj0snj0snj00Ugws5H00uAwETjYs0ZFJ5H00uANv5gKW0AuY5H00TA6qn0KET1Ys0AFL5HDs0A4Y5H00TLCq0A71gv-bm1dsTzdWUfKGuAnqiDF70ZKCIZbq0Zw9ThI-IjYvndtsg1Dsnj00IZN15HTznHbsP1bsnWR1nWmdnHcLPHm0ThNkIjYkP1T3nWc3PHm3rj6L0A-W5H00Tv-b5yPBujF-rjRLnj0snhnsP1D0mLPV5HDvP1ujfbckP16YPjN7rRc0UAF15H00mynqnfKsUWYs0Z7VIjYs0Z7VT1Ys0Aw-I7qWTADqn0KlIjYs0AFvujYz0AdWgvuzUvYqn7tsg1Kxn7tsg100uA78IyF-gLK_my4GuZnqn7t1njTsrHc4njKxn7tsg1Kxn0Ksmgwxuhk9u1Ys0AwWpyfqnH0YrjRLP6K-IA-b5iYk0A71TAPW5H00IgKGUhPW5H00Tydh5H00uhPdIjYs0A-1mvsqn0K9uAu_myTqnfK_uhnqn0KbmvPb5fKYTh7buHYs0AFbpyfq0AFY5H00Uv7YI1Ys0AqY5HD0ULFsIjYzc10Wn1_krj_1nj_LrH_knW0WnH0snan1rHf3njczrjDkc1cLPj6sc1cLPj6sQW0snj0snan1c1nePj_vr1cLc10WQinsQW01rHRdninkQW0snj0snankc10Wna3snj0snj0Wnansc10Wnankc10Wn0KBmy4omyPW5HDzn1fWPW6dc1Dzn1fWrH0L0Z91IZRqP1msP1nznW60TNqv5H08nj7xna3sn7tsQW0sg108njPxna3sn-tsQWbYg1D8nWNxni3zPNtsg1DLnjDkg100mMPxTZFEuA-b5H00ThqGuhk9u1Ys0Ad-IjYs0APv5fKGTdqWTADqn0KWTjYs0AN1IjYs0Z7MIvfqn0KETjDqnW030ZKsPjYkn0KWThnqrHbYr0&us=newvui&xst=T1YkPjm3P10dPWT4PHDvrjR3P163rNtznWNxns7L5UQBzVieSoh40gDq_8Q2dQhoze3KIHYLPW0Ln1czr07Y5HDLP16znW6dPWbKUgDqn0cs0BYKmv6quhPxTAnKUZRqn07WUWdBmy-bIf7zIjYs0Hc3n1czPj0YrHn&cegduid=P1msP1nznW6&solutionId=42330602&word=&ck=0.0.0.0.0.0.0.0&shh=www.baidu.com",
+          "abstract": "长春 测试机构-CMA/CNAS检测机构\n最近32分钟前有人咨询相关问题\n测试机构,提供产品质量检测,材料检测,环境检测,成分分析化验,气体水质土壤检测,药品化验等.出具全国认可报告.国家检测中心,各地均有实验室分部,可上门送检\n省属重点高新技术专家会审行业优选业内推荐高效精准\n广测检测研究所 2026-05广告"
+        },
+        {
+          "title": "中国十大检测机构排名,你了解几个",
+          "url": "http://www.baidu.com/link?url=k62_1zC3qtQEKZDEi-zkUeGIOQTbfhEnJNY744vQac81RTcNUmCnuhQEw_wP9nYB4RRtJSEqYYT6iLdxjmki89zWm0VywdNEQOHwD-fTIkPqL-q-bc-3iqSNWFXytOTx",
+          "abstract": ""
+        },
+        {
+          "title": "测试机构-CMA/CNAS检测机构",
+          "url": "https://www.baidu.com/baidu.php?url=Ks00000EAMrnlPLIy-49u4kqeFwSNnstVWIkEvTfwp9I1wdXjSZ38lVctalymzh2HvA979nxblWR3lN8xCgHK08Rpfm-SvpUV7SySzURv-06o_IJAmdQEWlIED-cfxEfIjTHtkZDhi_pOMDb0NPmCxfxzOcd9Sbnf3SpXx5kSrjeqxt3ooel3gR38pzRa9MZ1kehcwQGPANeHCMp_N8qqc9NVTik.7b_NR2Ar5Od66u8utovTyKDDUlamrjQsYP7SrWj01JH7feEY3hQVSEy1o3seEAAexb9_tUq-dhqPOi1bodGH8lkdr3nUrGQ3_TQ7xySe-SWDk7SOoSBUQS9ZSUqOHS8UqOOgvOhOUlUG_ElZAUQMlcELqxYwx-CI8JE4wkXPjO_pJO-gPSOS9gP-OfemEL3XLtLHdd3hcELqxYHuxYcO1xElxd1xEOlSLtLexHIP-Of31uTOw7SOoSBQtVjVlsdnIMyAGW_lLLTVOwZfmtL_OSjqjqakh1kl59OeZQ_8OtAE4x21vOe5tHdlgsYxqTP------MostXNLSEuWtO1SxHuuuuuuuuuuuuu6LS54_tgpe4xgGB___uWLOSaUlsvyyyuQ5-zOegdOt7h8z14IPMsvyXEjk4gxlqMqZOpePMKNstXNLSEuOwOv81uBzOEOlO-4lOSkvxSjOyhE-4Ihw538JeQQQQQPLqZSWOwOCOYxl5qZSWOwOCOwMzI5HmGyAp7BEW3eO7f.U1Yk0ZDq_8Q2dQhoze30TA-W5H00TZPGuv3qQfKY5UQBzVieSoh40A-V5HDYPWD0u1dsT1c0Iybqmh7GuZR0TA-b5HD30APGujYYn0KVIjY4njRsg1nznW9xnH0kPdtznjRkg1DsnH-xn1msnfKopHYs0ZFY5iYk0AFG5HDdr7tznjf0UynqrH0dn7t1nWc3g1DsnHIxnW0dnNtknjD4g100TgKGujYs0Z7Wpyfqn0KzuLw9u1Ys0A49pyfqn0K8mgws5H00mLNb5HcsnHT1PWc4rHb0mycqn7ts0ANzu1Yz0ZKs5H00UMus5H08nj0snj0snj00Ugws5H00uAwETjYs0ZFJ5H00uANv5gKW0AuY5H00TA6qn0KET1Ys0AFL5HDs0A4Y5H00TLCq0A71gv-bm1dsTzdWUfKGuAnqiDF70ZKCIZbq0Zw9ThI-IjYvndtsg1Ddn6KYIgnqnHcYnW0YrHDLPj6snWT3P1czrHD0ThNkIjYkP1T3nWc3PHm3rj6L0A-W5H00Tv-b5yPBujF-rjRLnj0snhnsP1D0mLPV5HDvP1ujfbckP16YPjN7rRc0UAF15H00mynqnfKsUWYs0Z7VIjYs0Z7VT1Ys0ZGY5H00mMub5Hc0UyPxuMFEUHYsg1Kxn7tsg1Kxn0Kbmy4dmhNxTAk9Uh-bT1Y1njb3PWb4nHIxn104rjm4rHDLg1Kxn7tsg100TA7Ygvu_myTqn0Kbmv-b5HDsPj6dP1m0ugwGujYvP0K9TLKWm1Ys0ZNspy4Wm1Ys0Z7VuWYs0AuWIgfqn0KGTvP_5H00mywhUA7M5HD0UAuW5H00uAPWujY0IZF9uARqn0KBuA-b5fKBIjYs0Aq9IZTqn0KEIjYk0AqzTZfqnBnsc1DLc1Dsnj0Wn1bYrjcYP1c3Pznzn10snanzn10sna3snj0snj0Wnznknj0sc10WQinsQW01rHRdninkQW0snj0snankc10Wna3snj0snj0Wnansc10Wnankc10Wn0KBmy4omyPW5H0Wnansc100XZPYIHYLPWcknW0Ln0KkgLmqna3snNtsQW0sg108njKxna3sPNtsQW0Yg108rHKxni3znNtkQWckg1KxnHTsnH7xn0KBTdqsThqbpyfqn0KzUv-hUA7M5H00UyNY5H00mLmq0A-1gvPsmHYs0APs5H00ugPY5H00TyILujYs0AqsnHYznj60TZ0Y5HDs0APzm1YkrHR1Ps&us=newvui&xst=T1YkPjm3P10dPWT4PHDvrjR3P163rNtkPjmkg10KI1vz3_oR8OJ48f7k5UQBzVi4Jt8S0gRqP1mznHcsP10KIjYkP1T3nWc3PHm40ydk5H0an0cV0yPC5yuWgLKW0ykd5H0Kmv3qmh7GuZRKTMfqn0D1PWT1PHb1PjTs&cegduid=P1mznHcsP10&solutionId=42505204&word=&ck=0.0.0.0.0.0.0.0&shh=www.baidu.com",
+          "abstract": "测试机构-CMA/CNAS检测机构"
+        },
+        {
+          "title": "第三方软件测试公司,您不可或缺的软件质量守护者 - 知乎",
+          "url": "http://www.baidu.com/link?url=i-0zQqby460zyXkVVCrZjl-virhCMovRHs23dot-Jsh_m5A_i1eFf_OPqCgxXIXn-2T5575eXl6fFR2Sisp5VK",
+          "abstract": ""
+        },
+        {
+          "title": "专业技术卓越服务,为企业提供一体化测试服务,赋能企业发展创新",
+          "url": "http://www.baidu.com/link?url=4zFwKIsyqD60SXnK3vhnXZ7_kTXIgtuPPrHlZrh49sjiIKUinFTc4aT-SRml7hy7_Ko8utXFAw7s6Z51fmg71DSAhcrFEKHLRjrmofvPcJu",
+          "abstract": ""
+        },
+        {
+          "title": "如何做好软件功能测试?深圳第三方软件检测机构有哪些? - 知乎",
+          "url": "http://www.baidu.com/link?url=_w4KFxaA0fhDkKpQLzdk-gA2diQHdiG31m-ke9PXPdsr-xhBTP3Hp1zvn3dKrCeGFfVLTxBKweKja7oWXFQlozb_BLqadWmzwgarNS0UbEi",
+          "abstract": ""
+        },
+        {
+          "title": "国内具备在线检测资质的公司有哪些? - 知乎",
+          "url": "http://www.baidu.com/link?url=RJ12e27aNRBMXY9ndbsouyIrfebZZJbeFmbvzA4_2jzFW9zI7FM_3GMRtMVE8YJiYRM5cbPr8VZOmmPwvf0LQimkyz7fePoUj8jN-VxeG5S",
+          "abstract": ""
+        },
+        {
+          "title": "测试公司\n - 精选笔记",
+          "url": "http://www.baidu.com/link?url=lBb8Jgxgn8zshvRVALlxPqoxglY4vT0TKgIGclY7MZ_dYTJ7ihu5Yp2mjXBnEUudpqWIi4V0_-H6K-Ica3tBTxQ-UoymhzPouOS5XFuGFEFrGGYAIPxwHw1nzWTXLZY0Afjqar_wPbOO0alsyarmh_",
+          "abstract": ""
+        },
+        {
+          "title": "机械设备见证测试公司,科技,工业机械,好看视频",
+          "url": "http://www.baidu.com/link?url=DMDkpZCLwILjs1CYaTsPQliD6S6Z49RjairH26kkIj2nWnn5wEbihtB_7EsIbuGpU-bpozubXDRbk_hhGBeH1O2Xhdhkt05qYyR1txn8Ex3",
+          "abstract": ""
+        },
+        {
+          "title": "第三方检测最新排名环境管理以及社会责任评估等多个领域",
+          "url": "http://www.baidu.com/link?url=VC9_I8jjhND9YMUqLqIRlwGwzcGR8alMclyzMWPeRfX2Dczx9h_e0122km0b4HAfrRWZefAB_c4PYKKLW-SIHNTvxV_X_7TGXgTHn5Rh1YVFI4Zd7uxXEZixU8jI8KNH",
+          "abstract": ""
+        }
+      ],
+      "news_results": [],
+      "error": null
+    },
+    "tianyancha": {
+      "source": "tianyancha",
+      "company": "测试公司",
+      "data": {
+        "company_name": "江苏东华测试技术股份有限公司在业",
+        "legal_representative": "法定代表人：\n刘士钢\n关联企业2",
+        "registered_capital": null,
+        "establishment_date": null,
+        "business_status": "在业",
+        "unified_social_credit_code": "91321200608775189J",
+        "registration_authority": null,
+        "company_type": null,
+        "address": "地址：\n靖江市新港大道208号（沿江公路罗家港桥东北侧）\n附近企业\n更多\n8"
+      },
+      "requires_login": false,
+      "error": null
+    },
+    "industry_sites": {
+      "company": "测试公司",
+      "enterprise_info": {},
+      "news": [],
+      "prices": [],
+      "errors": [
+        "访问纸业网失败: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://search.paper.com/search?keyword=%E6%B5%8B%E8%AF%95%E5%85%AC%E5%8F%B8\nCall log:\n  - navigating to \"https://search.paper.com/search?keyword=%E6%B5%8B%E8%AF%95%E5%85%AC%E5%8F%B8\", waiting until \"load\"\n",
+        "访问包装网失败: Page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://www.baoye.cn/search/?keyword=%E6%B5%8B%E8%AF%95%E5%85%AC%E5%8F%B8\", waiting until \"load\"\n",
+        "访问纸张行情失败: Page.goto: net::ERR_CONNECTION_TIMED_OUT at https://www.paper.cn/price\nCall log:\n  - navigating to \"https://www.paper.cn/price\", waiting until \"load\"\n"
+      ]
+    }
+  },
+  "errors": [],
+  "industry": {
+    "company": "测试公司",
+    "enterprise_info": {},
+    "news": [],
+    "prices": [],
+    "errors": [
+      "访问纸业网失败: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://search.paper.com/search?keyword=%E6%B5%8B%E8%AF%95%E5%85%AC%E5%8F%B8\nCall log:\n  - navigating to \"https://search.paper.com/search?keyword=%E6%B5%8B%E8%AF%95%E5%85%AC%E5%8F%B8\", waiting until \"load\"\n",
+      "访问包装网失败: Page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://www.baoye.cn/search/?keyword=%E6%B5%8B%E8%AF%95%E5%85%AC%E5%8F%B8\", waiting until \"load\"\n",
+      "访问纸张行情失败: Page.goto: net::ERR_CONNECTION_TIMED_OUT at https://www.paper.cn/price\nCall log:\n  - navigating to \"https://www.paper.cn/price\", waiting until \"load\"\n"
+    ]
+  },
+  "painPoints": {
+    "analysis": {
+      "ruleBased": [
+        {
+          "id": "orders_001",
+          "category": "订单管理",
+          "severity": "high",
+          "evidence": "收集规模和ERP信息",
+          "recommendation": "建议部署订单管理模块"
+        },
+        {
+          "id": "inventory_001",
+          "category": "库存管理",
+          "severity": "high",
+          "evidence": "收集产品和WMS信息",
+          "recommendation": "建议部署库存管理模块"
+        },
+        {
+          "id": "finance_001",
+          "category": "账款管理",
+          "severity": "high",
+          "evidence": "收集客户数和CRM信息",
+          "recommendation": "建议部署账款管理模块"
+        },
+        {
+          "id": "procurement_001",
+          "category": "采购协同",
+          "severity": "medium",
+          "evidence": "收集材料和SCM信息",
+          "recommendation": "建议部署采购管理模块"
+        }
+      ],
+      "aiEnhanced": null,
+      "merged": [
+        {
+          "id": "orders_001",
+          "category": "订单管理",
+          "severity": "high",
+          "source": "rules",
+          "recommendation": "建议部署订单管理模块"
+        },
+        {
+          "id": "inventory_001",
+          "category": "库存管理",
+          "severity": "high",
+          "source": "rules",
+          "recommendation": "建议部署库存管理模块"
+        },
+        {
+          "id": "finance_001",
+          "category": "账款管理",
+          "severity": "high",
+          "source": "rules",
+          "recommendation": "建议部署账款管理模块"
+        },
+        {
+          "id": "procurement_001",
+          "category": "采购协同",
+          "severity": "medium",
+          "source": "rules",
+          "recommendation": "建议部署采购管理模块"
+        }
+      ]
+    },
+    "metaConfig": {
+      "company": {
+        "name": "未知企业",
+        "scale": "unknown",
+        "industry": {
+          "company": "测试公司",
+          "enterprise_info": {},
+          "news": [],
+          "prices": [],
+          "errors": [
+            "访问纸业网失败: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://search.paper.com/search?keyword=%E6%B5%8B%E8%AF%95%E5%85%AC%E5%8F%B8\nCall log:\n  - navigating to \"https://search.paper.com/search?keyword=%E6%B5%8B%E8%AF%95%E5%85%AC%E5%8F%B8\", waiting until \"load\"\n",
+            "访问包装网失败: Page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://www.baoye.cn/search/?keyword=%E6%B5%8B%E8%AF%95%E5%85%AC%E5%8F%B8\", waiting until \"load\"\n",
+            "访问纸张行情失败: Page.goto: net::ERR_CONNECTION_TIMED_OUT at https://www.paper.cn/price\nCall log:\n  - navigating to \"https://www.paper.cn/price\", waiting until \"load\"\n"
+          ]
+        }
+      },
+      "modules": [
+        {
+          "id": "order_management",
+          "name": "订单管理",
+          "priority": 1,
+          "features": [
+            {
+              "name": "基础功能",
+              "status": "recommended"
+            },
+            {
+              "name": "高级功能",
+              "status": "recommended"
+            }
+          ],
+          "metadata": {
+            "source": "rules",
+            "recommendation": "建议部署订单管理模块"
+          }
+        },
+        {
+          "id": "inventory_management",
+          "name": "库存管理",
+          "priority": 1,
+          "features": [
+            {
+              "name": "基础功能",
+              "status": "recommended"
+            },
+            {
+              "name": "高级功能",
+              "status": "recommended"
+            }
+          ],
+          "metadata": {
+            "source": "rules",
+            "recommendation": "建议部署库存管理模块"
+          }
+        },
+        {
+          "id": "accounts_receivable",
+          "name": "账款管理",
+          "priority": 1,
+          "features": [
+            {
+              "name": "基础功能",
+              "status": "recommended"
+            },
+            {
+              "name": "高级功能",
+              "status": "recommended"
+            }
+          ],
+          "metadata": {
+            "source": "rules",
+            "recommendation": "建议部署账款管理模块"
+          }
+        },
+        {
+          "id": "procurement",
+          "name": "采购协同",
+          "priority": 2,
+          "features": [
+            {
+              "name": "基础功能",
+              "status": "recommended"
+            },
+            {
+              "name": "高级功能",
+              "status": "recommended"
+            }
+          ],
+          "metadata": {
+            "source": "rules",
+            "recommendation": "建议部署采购管理模块"
+          }
+        }
+      ],
+      "metadata": {
+        "generatedAt": "2026-05-08T08:23:39.899Z",
+        "painPointCount": 4,
+        "version": "1.0.0"
+      }
+    }
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "company": {
+    "name": "未知企业",
+    "scale": "unknown",
+    "industry": {
+      "company": "测试公司",
+      "enterprise_info": {},
+      "news": [],
+      "prices": [],
+      "errors": [
+        "访问纸业网失败: Page.goto: net::ERR_NAME_NOT_RESOLVED at https://search.paper.com/search?keyword=%E6%B5%8B%E8%AF%95%E5%85%AC%E5%8F%B8\nCall log:\n  - navigating to \"https://search.paper.com/search?keyword=%E6%B5%8B%E8%AF%95%E5%85%AC%E5%8F%B8\", waiting until \"load\"\n",
+        "访问包装网失败: Page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://www.baoye.cn/search/?keyword=%E6%B5%8B%E8%AF%95%E5%85%AC%E5%8F%B8\", waiting until \"load\"\n",
+        "访问纸张行情失败: Page.goto: net::ERR_CONNECTION_TIMED_OUT at https://www.paper.cn/price\nCall log:\n  - navigating to \"https://www.paper.cn/price\", waiting until \"load\"\n"
+      ]
+    }
+  },
+  "modules": [
+    {
+      "id": "order_management",
+      "name": "订单管理",
+      "priority": 1,
+      "features": [
+        {
+          "name": "基础功能",
+          "status": "recommended"
+        },
+        {
+          "name": "高级功能",
+          "status": "recommended"
+        }
+      ],
+      "metadata": {
+        "source": "rules",
+        "recommendation": "建议部署订单管理模块"
+      }
+    },
+    {
+      "id": "inventory_management",
+      "name": "库存管理",
+      "priority": 1,
+      "features": [
+        {
+          "name": "基础功能",
+          "status": "recommended"
+        },
+        {
+          "name": "高级功能",
+          "status": "recommended"
+        }
+      ],
+      "metadata": {
+        "source": "rules",
+        "recommendation": "建议部署库存管理模块"
+      }
+    },
+    {
+      "id": "accounts_receivable",
+      "name": "账款管理",
+      "priority": 1,
+      "features": [
+        {
+          "name": "基础功能",
+          "status": "recommended"
+        },
+        {
+          "name": "高级功能",
+          "status": "recommended"
+        }
+      ],
+      "metadata": {
+        "source": "rules",
+        "recommendation": "建议部署账款管理模块"
+      }
+    },
+    {
+      "id": "procurement",
+      "name": "采购协同",
+      "priority": 2,
+      "features": [
+        {
+          "name": "基础功能",
+          "status": "recommended"
+        },
+        {
+          "name": "高级功能",
+          "status": "recommended"
+        }
+      ],
+      "metadata": {
+        "source": "rules",
+        "recommendation": "建议部署采购管理模块"
+      }
+    }
+  ],
+  "metadata": {
+    "generatedAt": "2026-05-08T08:23:39.899Z",
+    "painPointCount": 4,
+    "version": "1.0.0"
+  }
+}
