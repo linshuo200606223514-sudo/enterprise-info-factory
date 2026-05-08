@@ -4,6 +4,7 @@ const path = require('path');
 const { setupCors } = require('./middleware/cors');
 const enterpriseRoutes = require('./routes/enterprise');
 const alertsRoutes = require('./routes/alerts');
+const manualTasksRoutes = require('./routes/manualTasks');
 const { ensureDb } = require('./db');
 const { startDailyMonitor } = require('./jobs/monitor');
 
@@ -20,6 +21,7 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 // API 路由
 app.use('/api', enterpriseRoutes);
 app.use('/api/alerts', alertsRoutes);
+app.use('/api/manual-tasks', manualTasksRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
