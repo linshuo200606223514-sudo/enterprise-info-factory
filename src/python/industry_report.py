@@ -9,14 +9,50 @@ from datetime import datetime
 
 from ai.website_extractor import WebsiteContentExtractor
 
-# 并行搜索任务配置
-SEARCH_TASKS = [
-    {"name": "main", "keyword_suffix": "头部玩家 平台 官网 2026", "max_results": 8, "file": "main.json"},
-    {"name": "news", "keyword_suffix": "最新动态 行业新闻 2026", "max_results": 6, "file": "news.json"},
-    {"name": "compare", "keyword_suffix": "竞品对比 推荐 选型", "max_results": 6, "file": "compare.json"},
-    {"name": "trend", "keyword_suffix": "趋势 数字化转型 技术动态", "max_results": 5, "file": "trend.json"},
-    {"name": "community", "keyword_suffix": "用户体验 口碑 论坛 讨论", "max_results": 5, "file": "community.json"},
-]
+# 多关键词搜索维度配置
+SEARCH_DIMENSIONS = {
+    "main": {
+        "keywords": [
+            "{keyword} 头部玩家 平台 官网 2026",
+            "{keyword} 主流产品 品牌排行榜",
+            "{keyword} 领先厂商 解决方案",
+        ],
+        "max_per_keyword": 10,
+        "output_file": "main.json",
+    },
+    "news": {
+        "keywords": [
+            "{keyword} 最新动态 行业新闻 2026",
+            "{keyword} 产品发布 融资 收购 2026",
+        ],
+        "max_per_keyword": 8,
+        "output_file": "news.json",
+    },
+    "compare": {
+        "keywords": [
+            "{keyword} 竞品对比 推荐 选型",
+            "{keyword} 哪个好 评测 对比",
+        ],
+        "max_per_keyword": 8,
+        "output_file": "compare.json",
+    },
+    "trend": {
+        "keywords": [
+            "{keyword} 趋势 数字化转型 技术动态",
+            "{keyword} 市场规模 报告 白皮书",
+        ],
+        "max_per_keyword": 6,
+        "output_file": "trend.json",
+    },
+    "community": {
+        "keywords": [
+            "{keyword} 用户体验 口碑 论坛 讨论",
+            "{keyword} 案例分享 行业论坛",
+        ],
+        "max_per_keyword": 6,
+        "output_file": "community.json",
+    },
+}
 
 class IndustryReportGenerator:
     """行业报告生成器"""
@@ -66,36 +102,93 @@ class IndustryReportGenerator:
         reporter.save(report_data)
 
     def _parallel_search(self, keyword: str) -> None:
-        """并行执行5条搜索，使用ThreadPoolExecutor真正异步"""
+        """多关键词并行搜索 + 合并去重"""
         import concurrent.futures
+        from collections import OrderedDict
 
         output_dir = "C:/tmp/industry_report"
         os.makedirs(output_dir, exist_ok=True)
 
-        def run_single_search(task: Dict) -> Tuple[str, float, bool]:
-            """执行单条搜索，返回(task_name, elapsed, success)"""
+        def run_keyword_search(dim_name: str, kw: str, max_results: int, idx: int) -> Tuple[str, str, float, List[Dict], bool]:
+            """执行单个关键词搜索，返回(dim_name, keyword, elapsed, results, success)"""
             start = time.time()
-            output_file = os.path.join(output_dir, task["file"])
-            cmd = f'tvly search "{keyword} {task["keyword_suffix"]}" --max-results {task["max_results"]} -o {output_file}'
+            tmp_file = os.path.join(output_dir, f"_tmp_{dim_name}_{idx}.json")
+            cmd = f'tvly search "{kw}" --max-results {max_results} -o {tmp_file}'
             try:
                 subprocess.run(cmd, shell=True, capture_output=True, timeout=120)
                 elapsed = time.time() - start
-                return (task["name"], elapsed, True)
+                data = self._load_json(tmp_file)
+                results = data.get('results', [])
+                # 清理临时文件
+                try:
+                    os.remove(tmp_file)
+                except:
+                    pass
+                return (dim_name, kw, elapsed, results, True)
             except Exception as e:
                 elapsed = time.time() - start
-                print(f"搜索失败 [{task['name']}]: {e}")
-                return (task["name"], elapsed, False)
+                print(f"  搜索失败 [{dim_name}/{idx}]: {e}")
+                return (dim_name, kw, elapsed, [], False)
 
-        # 并行执行所有搜索任务
+        # 构建所有关键词搜索任务
+        all_tasks = []  # (dim_name, keyword, max_results, idx)
+        for dim_name, dim_config in SEARCH_DIMENSIONS.items():
+            for idx, kw_template in enumerate(dim_config["keywords"]):
+                kw = kw_template.format(keyword=keyword)
+                all_tasks.append((dim_name, kw, dim_config["max_per_keyword"], idx))
+
+        # 并行执行所有关键词搜索
+        print(f"  启动 {len(all_tasks)} 个关键词搜索任务...")
         self.search_timings = {}
-        self.search_quality = {}  # 搜索质量分析
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            futures = {executor.submit(run_single_search, task): task for task in SEARCH_TASKS}
+        dim_results = {}  # dim_name -> list of (kw, results)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            futures = {
+                executor.submit(run_keyword_search, dim_name, kw, max_r, idx): (dim_name, kw)
+                for dim_name, kw, max_r, idx in all_tasks
+            }
             for future in concurrent.futures.as_completed(futures):
-                name, elapsed, success = future.result()
-                self.search_timings[name] = {"elapsed": round(elapsed, 2), "success": success}
-                status = "[OK]" if success else "[FAIL]"
-                print(f"  {status} {name} search completed in {elapsed:.1f}s")
+                dim_name, kw = futures[future]
+                result_dim, result_kw, elapsed, results, success = future.result()
+                if dim_name not in dim_results:
+                    dim_results[dim_name] = []
+                dim_results[dim_name].append((result_kw, results))
+
+                if dim_name not in self.search_timings:
+                    self.search_timings[dim_name] = {"elapsed": 0, "success": True}
+                self.search_timings[dim_name]["elapsed"] = max(
+                    self.search_timings[dim_name]["elapsed"], elapsed
+                )
+                self.search_timings[dim_name]["success"] = self.search_timings[dim_name]["success"] and success
+
+        # 合并每个维度的结果（按URL去重，保留最高分）
+        for dim_name, dim_config in SEARCH_DIMENSIONS.items():
+            kw_results = dim_results.get(dim_name, [])
+            merged = OrderedDict()  # url -> result (保留最高分)
+
+            for kw, results in kw_results:
+                for r in results:
+                    url = r.get('url', '')
+                    if not url:
+                        continue
+                    # 排除乱码和导航内容
+                    title = r.get('title', '')
+                    if self._is_garbled(title) or self._is_navigation_content(title):
+                        continue
+                    # 已有该URL且分数更高则跳过
+                    if url in merged and merged[url].get('score', 0) >= r.get('score', 0):
+                        continue
+                    merged[url] = r
+
+            # 保存合并后的结果
+            merged_list = list(merged.values())
+            output_file = os.path.join(output_dir, dim_config["output_file"])
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump({"results": merged_list}, f, ensure_ascii=False)
+
+            status = "[OK]" if self.search_timings.get(dim_name, {}).get("success") else "[FAIL]"
+            elapsed = self.search_timings.get(dim_name, {}).get("elapsed", 0)
+            print(f"  {status} {dim_name} search completed in {elapsed:.1f}s ({len(merged_list)} results after dedup)")
 
         # 分析搜索结果质量
         self._analyze_search_quality()
@@ -105,14 +198,13 @@ class IndustryReportGenerator:
         output_dir = "C:/tmp/industry_report"
         self.search_quality = {}
 
-        for task in SEARCH_TASKS:
-            name = task["name"]
-            filepath = os.path.join(output_dir, task["file"])
+        for dim_name, dim_config in SEARCH_DIMENSIONS.items():
+            filepath = os.path.join(output_dir, dim_config["output_file"])
             data = self._load_json(filepath)
             results = data.get('results', [])
 
             if not results:
-                self.search_quality[name] = {"status": "empty", "count": 0}
+                self.search_quality[dim_name] = {"status": "empty", "count": 0}
                 continue
 
             # 统计各指标
@@ -121,7 +213,7 @@ class IndustryReportGenerator:
             nav_count = sum(1 for r in results if self._is_navigation_content(r.get('title', '')))
             avg_score = sum(r.get('score', 0) for r in results) / total if total > 0 else 0
 
-            self.search_quality[name] = {
+            self.search_quality[dim_name] = {
                 "count": total,
                 "avg_score": round(avg_score, 3),
                 "garbled": garbled_count,
@@ -185,7 +277,7 @@ class IndustryReportGenerator:
             "generated_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             "search_timings": self.search_timings,
             "search_quality": self.search_quality,
-            "top_players": top_players[:8],
+            "top_players": top_players[:15],
             "latest_news": self._extract_news(news_data),
             "competitors": competitors,
             "trends": self._extract_trends(trend_data),
@@ -422,7 +514,7 @@ class IndustryReportGenerator:
                     "score": score,
                     "domain": domain
                 })
-        return players[:8]
+        return players[:15]
 
     def _extract_news(self, data: Dict) -> List[Dict]:
         """提取最新动态"""
@@ -439,7 +531,7 @@ class IndustryReportGenerator:
                 "date": "2026",  # Tavily不返回日期，使用年 approximate
                 "source": self._extract_domain(r.get('url', ''))
             })
-        return news[:6]
+        return news[:12]
 
     def _extract_competitors(self, data: Dict) -> List[Dict]:
         """提取竞品信息"""
@@ -458,7 +550,7 @@ class IndustryReportGenerator:
                 "url": r.get('url', ''),
                 "score": score
             })
-        return competitors[:6]
+        return competitors[:12]
 
     def _extract_community(self, data: Dict) -> List[Dict]:
         """提取社区评价"""
@@ -480,7 +572,7 @@ class IndustryReportGenerator:
                 "source": self._extract_domain(url),
                 "score": score
             })
-        return community[:5]
+        return community[:10]
 
     def _extract_trends(self, data: Dict) -> List[str]:
         """提取趋势"""
@@ -489,7 +581,7 @@ class IndustryReportGenerator:
         for r in results:
             if r.get('title'):
                 trends.append(r.get('title', ''))
-        return trends[:5]
+        return trends[:10]
 
     def _extract_domain(self, url: str) -> str:
         """提取域名"""
