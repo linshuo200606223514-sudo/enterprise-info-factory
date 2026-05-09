@@ -236,14 +236,41 @@ class IndustryReportGenerator:
         cleaned = self._clean_garbled(content)
         if len(cleaned) < 50:
             return "官网未提供定价信息"
-        keywords = ['定价', '价格', '收费', '费用', '套餐', '版本', '元/', '元/年', '元/月']
+
+        # 跳过导航/标签链接模式（如 [文字](URL) 形式的导航）
+        if self._is_navigation_content(cleaned):
+            return "官网未提供定价信息"
+
+        keywords = ['定价', '价格', '收费', '费用', '套餐', '版本', '元/', '元/年', '元/月', '元起', '元/人']
         for kw in keywords:
             if kw in cleaned:
                 idx = cleaned.find(kw)
                 snippet = cleaned[idx:idx+200]
                 snippet = ' '.join(snippet.split())[:150]
+                # 再次检查是否是导航
+                if self._is_navigation_content(snippet):
+                    continue
                 return snippet + "..." if len(snippet) >= 150 else snippet
         return "官网未提供定价信息"
+
+    def _is_navigation_content(self, content: str) -> bool:
+        """检测是否是导航/标签类内容（非正文）"""
+        if not content:
+            return False
+        # 统计导航模式的比例
+        nav_patterns = [
+            '](/',           # Markdown链接模式
+            'tag-',          # 标签路径
+            'article/',      # 文章路径
+            'category/',     # 分类路径
+        ]
+        nav_count = sum(content.count(p) for p in nav_patterns)
+        # 如果导航模式超过3个，或者超过内容长度的10%，认为是导航
+        if nav_count > 3:
+            return True
+        if len(content) > 0 and nav_count / len(content) > 0.1:
+            return True
+        return False
 
     def _is_garbled(self, content: str) -> bool:
         """检测内容是否乱码"""
