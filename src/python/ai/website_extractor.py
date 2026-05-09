@@ -1,7 +1,8 @@
 """网站内容LLM提取模块 - 使用GPT解析官网内容"""
 import os
 import json
-from typing import Dict, Optional
+import re
+from typing import Dict, List
 from openai import OpenAI
 
 class WebsiteContentExtractor:
@@ -36,38 +37,6 @@ class WebsiteContentExtractor:
         # TODO: 配置正确的API endpoint后启用
         return self._fallback_extract(content)
 
-    def _build_prompt(self, content: str, url: str) -> str:
-        url_hint = f"\n来源URL: {url}" if url else ""
-        return f"""从以下网站内容中提取产品核心信息：
-
-内容：
-{content[:8000]}
-{url_hint}
-
-输出格式（JSON）：
-{{
-  "core_functions": "核心功能描述（2-3句话，突出解决什么问题）",
-  "pricing": "定价信息（如有，含价格范围、版本差异）",
-  "target_users": "目标用户（1-2句话）",
-  "highlights": "产品亮点（突出差异化优势）",
-  "use_cases": "典型应用场景（1-2个具体例子）"
-}}
-
-如果某项信息不明确，输出"未提及"而非空值。"""
-
-    def _validate_and_fill(self, result: Dict) -> Dict:
-        defaults = {
-            "core_functions": "未提及",
-            "pricing": "未提及",
-            "target_users": "未提及",
-            "highlights": "未提及",
-            "use_cases": "未提及"
-        }
-        for k, v in defaults.items():
-            if k not in result or not result[k]:
-                result[k] = v
-        return result
-
     def _is_navigation_content(self, content: str) -> bool:
         """检测是否是导航/标签类内容（非正文）"""
         if not content:
@@ -84,7 +53,7 @@ class WebsiteContentExtractor:
         return False
 
     def _fallback_extract(self, content: str) -> Dict:
-        """简单基于关键词的备用提取"""
+        """增强的基于关键词的备用提取"""
         if not content or len(content) < 100:
             return {
                 "core_functions": "内容不足",
@@ -94,57 +63,89 @@ class WebsiteContentExtractor:
                 "use_cases": "未提及"
             }
 
-        # 简单关键词提取
         result = {"core_functions": "未提及", "pricing": "未提及",
                   "target_users": "未提及", "highlights": "未提及", "use_cases": "未提及"}
 
-        # 尝试找功能相关段落（跳过导航内容）
-        for keyword in ['功能', '产品介绍', '解决方案', '核心优势']:
-            idx = content.find(keyword)
-            if idx >= 0:
-                snippet = content[idx:idx+500]
-                snippet = ' '.join(snippet.split())[:300]
-                # 跳过导航类内容
-                if self._is_navigation_content(snippet):
-                    continue
-                result['core_functions'] = snippet
-                break
+        # 提取功能描述 - 尝试多个关键词和位置
+        result['core_functions'] = self._extract_best_snippet(content,
+            ['功能', '产品介绍', '解决方案', '核心优势', '系统功能', '主要功能', '产品功能'],
+            window_before=50, window_after=300, max_length=280)
 
-        # 尝试找定价相关段落（跳过导航内容）
-        for keyword in ['价格', '定价', '费用', '元/', '元/年', '套餐']:
-            idx = content.find(keyword)
-            if idx >= 0:
-                snippet = content[idx:idx+300]
-                snippet = ' '.join(snippet.split())[:200]
-                # 跳过导航类内容
-                if self._is_navigation_content(snippet):
-                    continue
-                result['pricing'] = snippet
-                break
+        # 提取定价信息 - 包含数字+单位的定价模式
+        result['pricing'] = self._extract_pricing_snippet(content)
 
-        # 尝试找目标用户相关段落
-        for keyword in ['目标用户', '适用', '面向', '适合', '客户', '人群', '场景']:
-            idx = content.find(keyword)
-            if idx >= 0:
-                snippet = content[idx:idx+200]
-                snippet = ' '.join(snippet.split())[:150]
-                if self._is_navigation_content(snippet):
-                    continue
-                result['target_users'] = snippet
-                break
+        # 提取目标用户
+        result['target_users'] = self._extract_best_snippet(content,
+            ['目标用户', '适用', '面向', '适合', '客户', '人群', '场景', '受众'],
+            window_before=10, window_after=250, max_length=200)
 
-        # 尝试找亮点/优势相关段落
-        for keyword in ['亮点', '优势', '特色', '特点', ' 차별화', '核心竞争']:
-            idx = content.find(keyword)
-            if idx >= 0:
-                snippet = content[idx:idx+200]
-                snippet = ' '.join(snippet.split())[:150]
-                if self._is_navigation_content(snippet):
-                    continue
-                result['highlights'] = snippet
-                break
+        # 提取亮点/优势
+        result['highlights'] = self._extract_best_snippet(content,
+            ['亮点', '优势', '特色', '特点', '核心竞争', '差异化'],
+            window_before=10, window_after=250, max_length=200)
 
         return result
+
+    def _extract_best_snippet(self, content: str, keywords: List[str],
+                               window_before: int = 0, window_after: int = 200,
+                               max_length: int = 200) -> str:
+        """从关键词附近提取最佳片段"""
+        best_snippet = "未提及"
+        best_score = 0
+
+        for keyword in keywords:
+            idx = content.find(keyword)
+            if idx < 0:
+                continue
+
+            # 提取周围上下文
+            start = max(0, idx - window_before)
+            end = min(len(content), idx + window_after)
+            snippet = content[start:end]
+            snippet = ' '.join(snippet.split())  # 规范化空白
+
+            # 跳过导航内容
+            if self._is_navigation_content(snippet):
+                continue
+
+            # 评分：内容越长且有关键词密度越高越好
+            if len(snippet) >= 20:
+                score = len(snippet) / (abs(idx - start) + 1)  # 关键词离开始越近越好
+                if score > best_score:
+                    best_score = score
+                    best_snippet = snippet[:max_length] + "..." if len(snippet) > max_length else snippet
+
+        return best_snippet
+
+    def _extract_pricing_snippet(self, content: str) -> str:
+        """专门提取定价相关片段"""
+        # 优先查找明确的定价模式：数字+元
+        patterns = [
+            (r'[\d,]+\s*元/[年月]', '元/月或元/年'),
+            (r'[\d,]+\s*元', '元'),
+            (r'套餐[^\n，,]{10,50}', '套餐'),
+            (r'定价[^\n，,]{10,80}', '定价'),
+            (r'价格[^\n，,]{10,80}', '价格'),
+        ]
+
+        for pattern, _ in patterns:
+            matches = list(re.finditer(pattern, content))
+            for m in matches:
+                start = max(0, m.start() - 20)
+                end = min(len(content), m.end() + 100)
+                snippet = content[start:end]
+                snippet = ' '.join(snippet.split())
+
+                if self._is_navigation_content(snippet):
+                    continue
+
+                # 进一步检查是否包含URL
+                if '](https://' in snippet or 'href=' in snippet:
+                    continue
+
+                return snippet[:180] + "..." if len(snippet) > 180 else snippet
+
+        return "未提及"
 
 
 def extract_website_content(content: str, url: str = "") -> Dict:
