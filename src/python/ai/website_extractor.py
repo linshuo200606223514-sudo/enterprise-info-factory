@@ -98,12 +98,15 @@ class WebsiteContentExtractor:
         result = {"core_functions": "未提及", "pricing": "未提及",
                   "target_users": "未提及", "highlights": "未提及", "use_cases": "未提及"}
 
-        # 尝试找功能相关段落
+        # 尝试找功能相关段落（跳过导航内容）
         for keyword in ['功能', '产品介绍', '解决方案', '核心优势']:
             idx = content.find(keyword)
             if idx >= 0:
                 snippet = content[idx:idx+500]
                 snippet = ' '.join(snippet.split())[:300]
+                # 跳过导航类内容
+                if self._is_navigation_content(snippet):
+                    continue
                 result['core_functions'] = snippet
                 break
 
