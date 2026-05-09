@@ -1,4 +1,4 @@
-"""Markdown报告生成模块"""
+"""Markdown报告生成模块 - LLM驱动版"""
 import sys
 import json
 import os
@@ -13,74 +13,102 @@ class MarkdownReporter:
         os.makedirs(output_dir, exist_ok=True)
 
     def generate(self, data: Dict) -> str:
-        """
-        生成Markdown格式的企业画像报告
-
-        Args:
-            data: 包含企业信息的数据字典
-
-        Returns:
-            str - 报告文件路径
-        """
         company_name = data.get("company_name", "未知企业")
-        structured = data.get("structured", {})
+        llm_analysis = data.get("llm_analysis", data.get("structured", {}))
+        markdown = self._build_markdown(company_name, llm_analysis)
 
-        markdown = self._build_markdown(company_name, structured)
-
-        filename = f"{company_name}_企业画像_{datetime.now().strftime('%Y%m%d')}.md"
+        safe_name = "".join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in company_name)
+        filename = f"{safe_name}_企业画像_{datetime.now().strftime('%Y%m%d_%H%M')}.md"
         filepath = os.path.join(self.output_dir, filename)
 
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(markdown)
-
         return filepath
 
-    def _build_markdown(self, company_name: str, structured: Dict) -> str:
-        """构建Markdown内容"""
+    def _build_markdown(self, company_name: str, llm_data: Dict) -> str:
         lines = [
             f"# 企业画像：{company_name}",
             "",
             f"**生成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            f"**数据可信度**: {llm_data.get('confidence_score', 'N/A')}",
             "",
             "---",
             "",
-            "## 基础信息",
+            "## 已确认信息",
         ]
 
-        basic_info = structured.get("basic_info", {})
-        if basic_info:
-            for key, value in basic_info.items():
-                lines.append(f"- **{key}**: {value}")
+        confirmed = llm_data.get("confirmed_info", {})
+        if confirmed:
+            lines.append(f"- **业务范围**: {', '.join(confirmed.get('business_scope', ['待确认']))}")
+            lines.append(f"- **地理位置**: {confirmed.get('location', '未确认')}")
+            lines.append(f"- **成立年份**: {confirmed.get('established_year', '未确认')}")
+            lines.append(f"- **预估规模**: {confirmed.get('estimated_scale', '未确认')}")
         else:
-            lines.append("- 暂无信息")
+            lines.append("- 暂无确认信息")
 
-        lines.extend(["", "## 业务范围"])
-        scope = structured.get("business_scope", [])
-        if scope:
-            for item in scope:
-                lines.append(f"- {item}")
-        else:
-            lines.append("- 暂无信息")
+        lines.extend(["", "## 业务特征"])
+        biz_chars = llm_data.get("business_characteristics", "")
+        lines.append(biz_chars if biz_chars else "信息不足，无法分析")
 
-        lines.extend(["", "## 行业特征"])
-        features = structured.get("industry_features", [])
-        if features:
-            for item in features:
-                lines.append(f"- {item}")
-        else:
-            lines.append("- 暂无信息")
+        lines.extend(["", "## 行业定位"])
+        lines.append(llm_data.get("industry_position", "未确认"))
 
-        lines.extend(["", "## 可能的痛点（AI推断）"])
-        pain_points = structured.get("potential_pain_points", [])
+        lines.extend(["", "## 潜在痛点"])
+        pain_points = llm_data.get("potential_pain_points", [])
         if pain_points:
-            for i, point in enumerate(pain_points, 1):
-                lines.append(f"{i}. {point}")
+            severity_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}
+            for pp in pain_points:
+                emoji = severity_emoji.get(pp.get("severity", "medium"), "⚪")
+                lines.append(f"{emoji} **{pp.get('issue', '未知问题')}**")
+                lines.append(f"   - 依据: {pp.get('basis', '无')}")
         else:
-            lines.append("- 暂无信息")
+            lines.append("未识别到明显痛点")
 
-        lines.extend(["", "---", f"*本报告由企业信息收集系统自动生成*"])
+        lines.extend(["", "## 数字化成熟度"])
+        digital = llm_data.get("digital_maturity", {})
+        if digital:
+            lines.append(f"**评级**: {digital.get('level', '未知')}")
+            lines.append(f"**描述**: {digital.get('description', '')}")
+            indicators = digital.get("indicators", [])
+            if indicators:
+                lines.append("**判断依据**:")
+                for ind in indicators:
+                    lines.append(f"- {ind}")
+        else:
+            lines.append("信息不足，无法评估")
+
+        lines.extend(["", "## 市场口碑"])
+        reputation = llm_data.get("market_reputation", {})
+        if reputation:
+            sentiment = reputation.get("sentiment", "unknown")
+            sentiment_map = {"positive": "✅ 正面", "negative": "❌ 负面", "neutral": "➖ 中性", "unknown": "❓ 未知"}
+            lines.append(f"**情感倾向**: {sentiment_map.get(sentiment, '未知')}")
+            evidence = reputation.get("evidence", [])
+            if evidence:
+                lines.append("**评价证据**:")
+                for e in evidence:
+                    lines.append(f"- {e}")
+            concerns = reputation.get("concerns", [])
+            if concerns:
+                lines.append("**投诉/问题**:")
+                for c in concerns:
+                    lines.append(f"- {c}")
+        else:
+            lines.append("暂无公开评价信息")
+
+        lines.extend(["", "## 数据缺口"])
+        data_gaps = llm_data.get("data_gaps", [])
+        if data_gaps:
+            lines.append("以下关键信息暂未获取到：")
+            for gap in data_gaps:
+                lines.append(f"- {gap}")
+        else:
+            lines.append("数据收集较完整")
+
+        lines.extend(["", "---", "", f"*本报告由企业信息收集系统自动生成*"])
 
         return "\n".join(lines)
+
 
 if __name__ == "__main__":
     data_json = None

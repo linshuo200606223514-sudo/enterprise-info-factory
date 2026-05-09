@@ -1,112 +1,142 @@
-"""AI实体提取模块"""
+"""AI实体提取模块 - LLM驱动版"""
 import os
 import sys
 import json
 import re
 from typing import Dict, List, Optional
+from openai import OpenAI
 
 class EntityExtractor:
-    """从文本中提取企业实体信息"""
+    """从文本中提取企业实体信息 - LLM驱动"""
 
-    def __init__(self, provider: str = "openai", model: str = "gpt-4o-mini"):
+    def __init__(self, provider: str = "openai", model: str = None):
         self.provider = provider
-        self.model = model
+        self.model = model or os.getenv("LLM_MODEL", "gpt-4o-mini")
         self.api_key = os.getenv("OPENAI_API_KEY")
+        self.client = None
+        if self.api_key:
+            self.client = OpenAI(api_key=self.api_key)
 
     def extract(self, raw_data: Dict) -> Dict:
         """
-        从原始搜索数据中提取结构化实体
+        从原始搜索数据中提取结构化实体（LLM推理版）
 
         Args:
             raw_data: 包含搜索结果的原始数据
 
         Returns:
-            Dict - 结构化的企业信息
+            Dict - LLM推理的企业画像
         """
-        # 合并所有文本来源
+        if not self.client:
+            return self._extract_by_rules(raw_data)
+
         combined_text = self._combine_text(raw_data)
+        if len(combined_text.strip()) < 50:
+            return self._extract_by_rules(raw_data)
 
-        # 使用规则提取基本信息（V1阶段）
-        # V2会使用LLM进行智能提取
-        structured = {
-            "basic_info": self.extract_basic_info(combined_text),
-            "business_scope": self.extract_business_scope(combined_text),
-            "organization": self.extract_organization(combined_text),
-            "industry_features": self.extract_industry_features(combined_text),
-            "potential_pain_points": self.extract_pain_points(combined_text),
-        }
-
-        return structured
+        return self._extract_by_llm(combined_text)
 
     def _combine_text(self, raw_data: Dict) -> str:
-        """合并多个来源的文本"""
         texts = []
         if "search_results" in raw_data:
             for result in raw_data["search_results"]:
                 if "title" in result:
-                    texts.append(result["title"])
+                    texts.append(f"【标题】{result['title']}")
                 if "abstract" in result:
-                    texts.append(result["abstract"])
+                    texts.append(f"【摘要】{result['abstract']}")
+                if "content" in result:
+                    texts.append(f"【正文】{result['content']}")
         if "tianyancha_data" in raw_data:
             tianyancha = raw_data["tianyancha_data"]
             if "data" in tianyancha and "items" in tianyancha["data"]:
                 for item in tianyancha["data"]["items"]:
-                    texts.append(str(item))
-        return "\n".join(texts)
+                    texts.append(f"【工商】{item}")
+        return "\n\n".join(texts)
 
-    def extract_basic_info(self, text: str) -> Dict:
-        """提取基础工商信息"""
-        info = {}
+    def _extract_by_llm(self, combined_text: str) -> Dict:
+        prompt = self._build_prompt(combined_text)
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": "你是一位企业调研专家，擅长从公开信息推断企业画像。输出严格JSON格式，用中文。"},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.3,
+                max_tokens=2000
+            )
+            result = json.loads(response.choices[0].message.content)
+            return self._validate_and_fill(result)
+        except Exception as e:
+            print(f"LLM调用失败: {e}")
+            return self._fallback_result()
 
-        # 提取公司名称（简单规则）
+    def _build_prompt(self, combined_text: str) -> str:
+        return f"""从以下信息推断企业画像，输出JSON：
+
+信息：
+{combined_text[:8000]}
+
+输出格式：
+{{
+  "company_name": "公司名称",
+  "confirmed_info": {{
+    "business_scope": ["业务范围"],
+    "location": "地址",
+    "established_year": "成立年份",
+    "estimated_scale": "规模"
+  }},
+  "business_characteristics": "业务特征描述",
+  "industry_position": "行业定位",
+  "potential_pain_points": [{{"issue": "问题", "basis": "依据", "severity": "high/medium/low"}}],
+  "digital_maturity": {{"level": "low/medium/high", "indicators": [], "description": ""}},
+  "market_reputation": {{"sentiment": "positive/neutral/negative", "evidence": [], "concerns": []}},
+  "confidence_score": 0.0-1.0,
+  "data_gaps": ["缺少的信息"]
+}}"""
+
+    def _validate_and_fill(self, result: Dict) -> Dict:
+        defaults = {
+            "company_name": "未确认",
+            "confirmed_info": {"business_scope": [], "location": "未确认", "established_year": "未确认", "estimated_scale": "未确认"},
+            "business_characteristics": "信息不足",
+            "industry_position": "未确认",
+            "potential_pain_points": [],
+            "digital_maturity": {"level": "unknown", "indicators": [], "description": "信息不足"},
+            "market_reputation": {"sentiment": "unknown", "evidence": [], "concerns": []},
+            "confidence_score": 0.1,
+            "data_gaps": ["数据不足"]
+        }
+        for k, v in defaults.items():
+            if k not in result:
+                result[k] = v
+        return result
+
+    def _extract_by_rules(self, raw_data: Dict) -> Dict:
+        text = raw_data.get("text", self._combine_text(raw_data))
         name_match = re.search(r'([一-龥]{2,20}(?:造纸厂|纸业|包装|科技|有限|公司))', text)
-        if name_match:
-            info["name"] = name_match.group(1)
+        keywords = ["纸箱", "包装", "造纸", "印刷", "纸板", "纸制品", "蜂窝板", "瓦楞纸"]
+        found = list(set([k for k in keywords if k in text]))
+        return {
+            "company_name": name_match.group(1) if name_match else "未确认",
+            "confirmed_info": {"business_scope": found or ["待确认"], "location": "未确认", "established_year": "未确认", "estimated_scale": "未确认"},
+            "business_characteristics": "信息不足，无法分析",
+            "industry_position": "未确认",
+            "potential_pain_points": [
+                {"issue": "订单管理困难", "basis": "造纸箱行业通用痛点", "severity": "medium"},
+                {"issue": "生产排程混乱", "basis": "造纸箱行业通用痛点", "severity": "medium"},
+                {"issue": "成本核算不准", "basis": "造纸箱行业通用痛点", "severity": "low"}
+            ],
+            "digital_maturity": {"level": "unknown", "indicators": [], "description": "信息不足"},
+            "market_reputation": {"sentiment": "unknown", "evidence": [], "concerns": []},
+            "confidence_score": 0.2,
+            "data_gaps": ["缺少公开数据"]
+        }
 
-        # 提取注册资本
-        capital_match = re.search(r'注册资本[：:]\s*([\d.]+(?:亿万)?)', text)
-        if capital_match:
-            info["capital"] = capital_match.group(1)
+    def _fallback_result(self) -> Dict:
+        return self._extract_by_rules({})
 
-        # 提取成立时间
-        date_match = re.search(r'成立[于时]?\s*(\d{4})', text)
-        if date_match:
-            info["established"] = date_match.group(1)
-
-        return info
-
-    def extract_business_scope(self, text: str) -> List[str]:
-        """提取业务范围"""
-        keywords = ["纸箱", "包装", "造纸", "印刷", "纸板", "纸制品", "蜂窝板"]
-        found = [k for k in keywords if k in text]
-        return found if found else ["待确认"]
-
-    def extract_organization(self, text: str) -> Dict:
-        """提取组织规模信息"""
-        scale = {}
-        if "人数" in text or "员工" in text or "规模" in text:
-            scale["estimated_headcount"] = "待调研"
-        return scale
-
-    def extract_industry_features(self, text: str) -> List[str]:
-        """提取行业特征"""
-        features = []
-        if "制造业" in text or "工厂" in text:
-            features.append("制造业")
-        if "纸箱" in text:
-            features.append("纸箱包装行业")
-        return features
-
-    def extract_pain_points(self, text: str) -> List[str]:
-        """基于行业特征推断可能的痛点"""
-        # 造纸箱行业常见痛点
-        common_pain_points = [
-            "订单管理混乱",
-            "生产排程困难",
-            "库存管理不准",
-            "财务对账麻烦"
-        ]
-        return common_pain_points
 
 if __name__ == "__main__":
     search_results_json = None
@@ -126,4 +156,4 @@ if __name__ == "__main__":
 
     extractor = EntityExtractor()
     result = extractor.extract({"search_results": search_results, "tianyancha_data": tianyancha_data})
-    print(json.dumps(result, ensure_ascii=False))
+    print(json.dumps(result, ensure_ascii=False, indent=2))
