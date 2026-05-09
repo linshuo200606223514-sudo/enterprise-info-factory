@@ -10,46 +10,52 @@ from datetime import datetime
 from ai.website_extractor import WebsiteContentExtractor
 
 # 多关键词搜索维度配置
+# 每个维度使用多个不同角度的关键词，覆盖更多数据源
 SEARCH_DIMENSIONS = {
     "main": {
         "keywords": [
             "{keyword} 头部玩家 平台 官网 2026",
             "{keyword} 主流产品 品牌排行榜",
             "{keyword} 领先厂商 解决方案",
+            "{keyword} 知名品牌 供应商",
         ],
-        "max_per_keyword": 10,
+        "max_per_keyword": 15,
         "output_file": "main.json",
     },
     "news": {
         "keywords": [
             "{keyword} 最新动态 行业新闻 2026",
             "{keyword} 产品发布 融资 收购 2026",
+            "{keyword} 战略合作 技术突破",
         ],
-        "max_per_keyword": 8,
+        "max_per_keyword": 12,
         "output_file": "news.json",
     },
     "compare": {
         "keywords": [
             "{keyword} 竞品对比 推荐 选型",
             "{keyword} 哪个好 评测 对比",
+            "{keyword} 十大品牌 排名榜",
         ],
-        "max_per_keyword": 8,
+        "max_per_keyword": 12,
         "output_file": "compare.json",
     },
     "trend": {
         "keywords": [
             "{keyword} 趋势 数字化转型 技术动态",
             "{keyword} 市场规模 报告 白皮书",
+            "{keyword} 行业分析 研究报告",
         ],
-        "max_per_keyword": 6,
+        "max_per_keyword": 10,
         "output_file": "trend.json",
     },
     "community": {
         "keywords": [
             "{keyword} 用户体验 口碑 论坛 讨论",
             "{keyword} 案例分享 行业论坛",
+            "{keyword} 用户评价 真实点评",
         ],
-        "max_per_keyword": 6,
+        "max_per_keyword": 10,
         "output_file": "community.json",
     },
 }
@@ -277,7 +283,7 @@ class IndustryReportGenerator:
             "generated_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             "search_timings": self.search_timings,
             "search_quality": self.search_quality,
-            "top_players": top_players[:15],
+            "top_players": top_players[:30],
             "latest_news": self._extract_news(news_data),
             "competitors": competitors,
             "trends": self._extract_trends(trend_data),
@@ -324,7 +330,7 @@ class IndustryReportGenerator:
             return player
 
         # 并行处理最多5个player
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             futures = {executor.submit(extract_single_player, p): p for p in players[:5]}
             for future in concurrent.futures.as_completed(futures):
                 updated_player = future.result()
@@ -514,8 +520,7 @@ class IndustryReportGenerator:
                     "score": score,
                     "domain": domain
                 })
-        return players[:15]
-
+        return players[:30]
     def _extract_news(self, data: Dict) -> List[Dict]:
         """提取最新动态"""
         results = data.get('results', [])
@@ -531,7 +536,7 @@ class IndustryReportGenerator:
                 "date": "2026",  # Tavily不返回日期，使用年 approximate
                 "source": self._extract_domain(r.get('url', ''))
             })
-        return news[:12]
+        return news[:20]
 
     def _extract_competitors(self, data: Dict) -> List[Dict]:
         """提取竞品信息"""
@@ -550,7 +555,7 @@ class IndustryReportGenerator:
                 "url": r.get('url', ''),
                 "score": score
             })
-        return competitors[:12]
+        return competitors[:20]
 
     def _extract_community(self, data: Dict) -> List[Dict]:
         """提取社区评价"""
@@ -572,7 +577,7 @@ class IndustryReportGenerator:
                 "source": self._extract_domain(url),
                 "score": score
             })
-        return community[:10]
+        return community[:15]
 
     def _extract_trends(self, data: Dict) -> List[str]:
         """提取趋势"""
@@ -581,7 +586,7 @@ class IndustryReportGenerator:
         for r in results:
             if r.get('title'):
                 trends.append(r.get('title', ''))
-        return trends[:10]
+        return trends[:15]
 
     def _extract_domain(self, url: str) -> str:
         """提取域名"""
