@@ -56,7 +56,17 @@ class IndustryReportGenerator:
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
                 return json.load(f)
-        except:
+        except json.JSONDecodeError:
+            # 尝试用errors='replace'修复编码问题
+            try:
+                with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
+                    content = f.read()
+                # 清理常见的无效字符
+                content = content.replace('﻿', '')  # BOM
+                return json.loads(content)
+            except Exception:
+                return {}
+        except Exception:
             return {}
 
     def _compile_report(self, keyword: str) -> Dict:
@@ -131,32 +141,52 @@ class IndustryReportGenerator:
 
     def _parse_core_functions(self, content: str) -> str:
         """从内容中解析核心功能"""
-        if not content:
-            return "未知"
+        if not content or len(content) < 50:
+            return "官网未提供详细信息"
+        # 清理乱码字符（显示为 ? 或 �）
+        cleaned = self._clean_garbled(content)
+        if len(cleaned) < 50:
+            return "官网未提供详细信息"
         # 简单关键词匹配
-        keywords = ['核心功能', '主要功能', '产品功能', '功能介绍', '解决方案']
+        keywords = ['核心功能', '主要功能', '产品功能', '功能介绍', '解决方案', '库存管理', '财务管理', '订单管理']
         for kw in keywords:
-            if kw in content:
+            if kw in cleaned:
                 # 找到关键词后的100-300字
-                idx = content.find(kw)
-                snippet = content[idx:idx+300]
-                # 清理
+                idx = cleaned.find(kw)
+                snippet = cleaned[idx:idx+300]
+                # 清理多余空白
                 snippet = ' '.join(snippet.split())[:200]
                 return snippet + "..." if len(snippet) >= 200 else snippet
-        return "官网未提供详细信息"
+        return cleaned[:150] + "..." if len(cleaned) >= 150 else cleaned
 
     def _parse_pricing(self, content: str) -> str:
         """从内容中解析定价模式"""
-        if not content:
-            return "未知"
-        keywords = ['定价', '价格', '收费', '费用', '套餐', '版本']
+        if not content or len(content) < 50:
+            return "官网未提供定价信息"
+        # 清理乱码字符
+        cleaned = self._clean_garbled(content)
+        if len(cleaned) < 50:
+            return "官网未提供定价信息"
+        keywords = ['定价', '价格', '收费', '费用', '套餐', '版本', '元/', '元/年', '元/月']
         for kw in keywords:
-            if kw in content:
-                idx = content.find(kw)
-                snippet = content[idx:idx+200]
+            if kw in cleaned:
+                idx = cleaned.find(kw)
+                snippet = cleaned[idx:idx+200]
                 snippet = ' '.join(snippet.split())[:150]
                 return snippet + "..." if len(snippet) >= 150 else snippet
         return "官网未提供定价信息"
+
+    def _clean_garbled(self, content: str) -> str:
+        """清理乱码字符，保留可读中文"""
+        import re
+        # 替换常见的乱码模式为空格
+        # 移除控制字符但保留中文、英文、数字、常见标点
+        cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', ' ', content)
+        # 移除过多的问号（乱码标记）
+        cleaned = re.sub(r'\?{3,}', ' ', cleaned)
+        # 将非可打印字符序列替换为单空格
+        cleaned = re.sub(r'[\x93\x94\x95\x96\x97\x98\x99\x9c\x9d\x9e\x9f\x91\x92]', ' ', cleaned)
+        return cleaned
 
     def _extract_players(self, data: Dict) -> List[Dict]:
         """提取头部玩家 - 使用更低阈值捕获中文相关结果"""
