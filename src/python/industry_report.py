@@ -200,7 +200,7 @@ class IndustryReportGenerator:
         self._analyze_search_quality()
 
     def _analyze_search_quality(self) -> None:
-        """分析各路搜索结果的质量"""
+        """分析各路搜索结果的质量 - 基于内容可用性评估"""
         output_dir = "C:/tmp/industry_report"
         self.search_quality = {}
 
@@ -210,21 +210,62 @@ class IndustryReportGenerator:
             results = data.get('results', [])
 
             if not results:
-                self.search_quality[dim_name] = {"status": "empty", "count": 0}
+                self.search_quality[dim_name] = {
+                    "status": "empty", "count": 0,
+                    "valid_count": 0, "garbled": 0, "nav_heavy": 0,
+                    "avg_score": 0, "quality_score": 0
+                }
                 continue
 
-            # 统计各指标
+            # 基础指标
             total = len(results)
             garbled_count = sum(1 for r in results if self._is_garbled(r.get('title', '')))
             nav_count = sum(1 for r in results if self._is_navigation_content(r.get('title', '')))
             avg_score = sum(r.get('score', 0) for r in results) / total if total > 0 else 0
 
+            # 可用结果：非乱码、非导航
+            valid_count = total - garbled_count - nav_count
+            valid_ratio = valid_count / total if total > 0 else 0
+
+            # 域名多样性：统计不同域名数量
+            domains = set()
+            for r in results:
+                domain = self._extract_domain(r.get('url', ''))
+                if domain:
+                    domains.add(domain)
+            domain_diversity = len(domains)
+
+            # 高质量结果比例（ Tavily score > 0.5）
+            high_quality_count = sum(1 for r in results if r.get('score', 0) > 0.5)
+            high_quality_ratio = high_quality_count / total if total > 0 else 0
+
+            # 综合质量分：可用率 * 0.4 + 高质量率 * 0.3 + 域名多样性 * 0.15 + Tavily平均分 * 0.25
+            # 域名多样性归一化：超过10个域名就认为多样性足够
+            quality_score = (
+                valid_ratio * 0.40 +
+                high_quality_ratio * 0.30 +
+                min(domain_diversity / 10, 1.0) * 0.15 +
+                avg_score * 0.15
+            )
+
+            # status 判断基于综合质量分
+            if quality_score >= 0.6:
+                status = "good"
+            elif quality_score >= 0.4:
+                status = "warning"
+            else:
+                status = "poor"
+
             self.search_quality[dim_name] = {
                 "count": total,
+                "valid_count": valid_count,
                 "avg_score": round(avg_score, 3),
+                "quality_score": round(quality_score, 3),
                 "garbled": garbled_count,
                 "nav_heavy": nav_count,
-                "status": "good" if avg_score > 0.5 and garbled_count == 0 else "warning" if avg_score > 0.3 else "poor"
+                "domain_diversity": domain_diversity,
+                "high_quality_count": high_quality_count,
+                "status": status
             }
 
     def _load_json(self, filepath: str) -> Dict:

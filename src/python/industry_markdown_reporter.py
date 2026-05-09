@@ -47,16 +47,19 @@ class IndustryMarkdownReporter:
         # 搜索质量分析
         quality = report_data.get('search_quality', {})
         if quality:
-            lines.extend(["", "### 📊 搜索质量分析"])
-            lines.append("| 搜索维度 | 结果数 | 平均分 | 状态 |")
-            lines.append("|----------|--------|--------|------|")
+            lines.extend(["", "### 📊 搜索质量分析（基于内容可用性）"])
+            lines.append("| 搜索维度 | 结果数 | 可用 | 域名多样 | Tavily均分 | 质量分 | 状态 |")
+            lines.append("|----------|--------|------|----------|-----------|--------|------|")
             for name, info in quality.items():
                 label = {"main": "头部玩家", "news": "新闻动态", "compare": "竞品对比", "trend": "趋势分析", "community": "社区评价"}.get(name, name)
                 count = info.get('count', 0)
-                avg_score = info.get('avg_score', 0)
+                valid = info.get('valid_count', count)
+                div = info.get('domain_diversity', 0)
+                avg = info.get('avg_score', 0)
+                qs = info.get('quality_score', 0)
                 status = info.get('status', 'unknown')
                 status_icon = "[OK]" if status == "good" else "[WARN]" if status == "warning" else "[FAIL]"
-                lines.append(f"| {label} | {count} | {avg_score:.3f} | {status_icon} |")
+                lines.append(f"| {label} | {count} | {valid} | {div} | {avg:.3f} | {qs:.3f} | {status_icon} |")
 
         # 头部玩家（带详情）
         players = report_data.get('top_players', [])
