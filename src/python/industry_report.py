@@ -124,16 +124,27 @@ class IndustryReportGenerator:
         if not urls:
             return
 
-        # 调用tavily extract，使用env设置UTF-8编码
+        # 优先用Tavily extract
         url_args = ' '.join(f'"{u}"' for u in urls)
         cmd = f'tvly extract {url_args} --json -o {extract_file}'
         env = os.environ.copy()
         env['PYTHONIOENCODING'] = 'utf-8'
         subprocess.run(cmd, shell=True, capture_output=True, env=env)
 
-        # 解析提取结果
+        # 检查Tavily结果质量，如果乱码太多则用scrapling备份
         extract_data = self._load_json(extract_file)
         results = extract_data.get('results', [])
+
+        # 检查是否有乱码
+        garbled_count = 0
+        for i, r in enumerate(results):
+            raw = r.get('raw_content', '')
+            if raw and self._is_garbled(raw):
+                garbled_count += 1
+
+        # 如果超过一半结果乱码，尝试scrapling备份
+        if results and garbled_count > len(results) // 2:
+            self._extract_with_scrapling(players[:5])
 
         # 为每个player补充详情
         for i, player in enumerate(players[:5]):
@@ -141,6 +152,40 @@ class IndustryReportGenerator:
                 raw_content = results[i].get('raw_content', '')
                 player['core_functions'] = self._parse_core_functions(raw_content)
                 player['pricing'] = self._parse_pricing(raw_content)
+
+    def _extract_with_scrapling(self, players: List[Dict]) -> None:
+        """使用scrapling提取详情（备份方案）"""
+        try:
+            from scrapling.fetchers import Fetcher
+        except ImportError:
+            return
+
+        for player in players:
+            url = player.get('url', '')
+            if not url:
+                continue
+            try:
+                page = Fetcher.get(url)
+                # 提取标题和链接作为主要内容
+                content_parts = []
+                title = page.css('title::text').get()
+                if title:
+                    content_parts.append(f"标题: {title}")
+                # 提取meta描述
+                meta_desc = page.css('meta[name="description"]::attr(content)').get()
+                if meta_desc:
+                    content_parts.append(f"描述: {meta_desc}")
+                # 提取正文段落
+                for p in page.css('p::text')[:10]:
+                    text = p.strip()
+                    if text and len(text) > 20:
+                        content_parts.append(text)
+                if content_parts:
+                    content = ' '.join(content_parts)
+                    if not player.get('core_functions') or player.get('core_functions', '').startswith('内容解析失败'):
+                        player['core_functions'] = content[:200] + '...' if len(content) > 200 else content
+            except Exception:
+                pass  # 静默跳过，保留Tavily的结果
 
     def _parse_core_functions(self, content: str) -> str:
         """从内容中解析核心功能"""
