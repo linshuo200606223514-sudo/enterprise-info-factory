@@ -1,4 +1,5 @@
 """JSON导出模块"""
+import sys
 import json
 import os
 import re
@@ -41,3 +42,21 @@ class JSONExporter:
         """生成安全的文件名"""
         safe = re.sub(r'[^一-龥a-zA-Z0-9]', '_', name)
         return safe[:50]
+
+if __name__ == "__main__":
+    data_json = None
+    company_name = None
+    for arg in sys.argv[1:]:
+        if arg.startswith("data="):
+            data_json = arg.split("=", 1)[1]
+        elif arg.startswith("company_name="):
+            company_name = arg.split("=", 1)[1]
+
+    if not data_json or not company_name:
+        print("Error: data and company_name are required")
+        sys.exit(1)
+
+    data = json.loads(data_json)
+    exporter = JSONExporter()
+    filepath = exporter.export(data, company_name)
+    print(filepath)

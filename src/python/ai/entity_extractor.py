@@ -1,5 +1,7 @@
 """AI实体提取模块"""
 import os
+import sys
+import json
 import re
 from typing import Dict, List, Optional
 
@@ -105,3 +107,23 @@ class EntityExtractor:
             "财务对账麻烦"
         ]
         return common_pain_points
+
+if __name__ == "__main__":
+    search_results_json = None
+    tianyancha_data_json = None
+    for arg in sys.argv[1:]:
+        if arg.startswith("search_results="):
+            search_results_json = arg.split("=", 1)[1]
+        elif arg.startswith("tianyancha_data="):
+            tianyancha_data_json = arg.split("=", 1)[1]
+
+    if not search_results_json or not tianyancha_data_json:
+        print("Error: search_results and tianyancha_data are required")
+        sys.exit(1)
+
+    search_results = json.loads(search_results_json)
+    tianyancha_data = json.loads(tianyancha_data_json)
+
+    extractor = EntityExtractor()
+    result = extractor.extract({"search_results": search_results, "tianyancha_data": tianyancha_data})
+    print(json.dumps(result, ensure_ascii=False))

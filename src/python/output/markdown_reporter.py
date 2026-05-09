@@ -1,4 +1,6 @@
 """Markdown报告生成模块"""
+import sys
+import json
 import os
 from datetime import datetime
 from typing import Dict
@@ -79,3 +81,18 @@ class MarkdownReporter:
         lines.extend(["", "---", f"*本报告由企业信息收集系统自动生成*"])
 
         return "\n".join(lines)
+
+if __name__ == "__main__":
+    data_json = None
+    for arg in sys.argv[1:]:
+        if arg.startswith("data="):
+            data_json = arg.split("=", 1)[1]
+
+    if not data_json:
+        print("Error: data is required")
+        sys.exit(1)
+
+    data = json.loads(data_json)
+    reporter = MarkdownReporter()
+    filepath = reporter.generate(data)
+    print(filepath)

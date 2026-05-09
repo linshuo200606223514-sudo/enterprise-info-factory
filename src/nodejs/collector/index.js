@@ -34,18 +34,19 @@ async function runCollector(companyName, options = {}) {
 
     // 第三步：AI实体提取
     console.log('\n🇬️ 步骤3: AI分析提取结构化信息...');
-    const structuredData = await runPythonScript('src/python/ai/entity_extractor.py', {
-        search_results: JSON.stringify(searchResults),
-        tianyancha_data: JSON.stringify(tianyanchaData)
+    const structuredDataStr = await runPythonScript('src/python/ai/entity_extractor.py', {
+        search_results: searchResults,
+        tianyancha_data: tianyanchaData
     });
+    const structured = JSON.parse(structuredDataStr);
 
     // 第四步：输出结果
     console.log('\n🇬️ 步骤4: 生成输出文件...');
     const outputData = {
         company_name: companyName,
         sources: ['baidu', 'tianyancha'],
-        raw_data: { search_results: searchResults, tianyancha: tianyanchaData },
-        structured: structuredData
+        raw_data: { search_results: JSON.parse(searchResults), tianyancha: JSON.parse(tianyanchaData) },
+        structured: structured
     };
 
     // JSON导出
@@ -73,15 +74,20 @@ async function runCollector(companyName, options = {}) {
 function runPythonScript(scriptPath, args) {
     return new Promise((resolve, reject) => {
         const argList = Object.entries(args).map(([k, v]) => `${k}=${v}`);
-        const proc = spawn('python', [scriptPath, ...argList], { shell: true });
+        const env = { ...process.env, PYTHONIOENCODING: 'utf-8' };
+        const proc = spawn('python', [scriptPath, ...argList], { env });
 
         let stdout = '';
+        let stderr = '';
         proc.stdout.on('data', (data) => { stdout += data.toString(); });
-        proc.stderr.on('data', (data) => { console.error(data.toString()); });
+        proc.stderr.on('data', (data) => { stderr += data.toString(); });
 
         proc.on('close', (code) => {
             if (code === 0) resolve(stdout.trim());
-            else reject(new Error(`Python script failed with code ${code}`));
+            else {
+                console.error('Python stderr:', stderr.substring(0, 500));
+                reject(new Error(`Python script failed with code ${code}`));
+            }
         });
     });
 }

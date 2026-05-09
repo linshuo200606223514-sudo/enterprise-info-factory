@@ -1,5 +1,7 @@
 """天眼查API模块"""
 import os
+import sys
+import json
 import requests
 from typing import Dict, Optional, List
 
@@ -60,3 +62,17 @@ class TianyanchaAPI:
                 ]
             }
         }
+
+if __name__ == "__main__":
+    company_name = None
+    for arg in sys.argv[1:]:
+        if arg.startswith("company_name="):
+            company_name = arg.split("=", 1)[1]
+
+    if not company_name:
+        print("Error: company_name is required")
+        sys.exit(1)
+
+    api = TianyanchaAPI()
+    result = api.search_company(company_name)
+    print(json.dumps(result, ensure_ascii=False))

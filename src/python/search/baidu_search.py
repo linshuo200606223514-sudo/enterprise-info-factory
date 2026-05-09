@@ -1,4 +1,7 @@
 """百度搜索模块"""
+import sys
+import json
+import argparse
 from typing import List, Dict
 import urllib.parse
 import asyncio
@@ -54,4 +57,32 @@ class BaiduSearch:
             ''')
 
             await browser.close()
-            return results if results else []
+            # 清理结果中的控制字符，避免JSON解析错误
+            cleaned = []
+            for item in (results or []):
+                cleaned_item = {}
+                for k, v in item.items():
+                    if isinstance(v, str):
+                        # 移除控制字符，换行符等替换为空格
+                        v = ''.join(c if ord(c) >= 32 else ' ' for c in v)
+                    cleaned_item[k] = v
+                cleaned.append(cleaned_item)
+            return cleaned
+
+if __name__ == "__main__":
+    # 解析 keyword=xxx max_results=N 格式的命令行参数
+    keyword = None
+    max_results = 10
+    for arg in sys.argv[1:]:
+        if arg.startswith("keyword="):
+            keyword = arg.split("=", 1)[1]
+        elif arg.startswith("max_results="):
+            max_results = int(arg.split("=", 1)[1])
+
+    if not keyword:
+        print("Error: keyword is required")
+        sys.exit(1)
+
+    searcher = BaiduSearch(max_results=max_results)
+    results = searcher.search(keyword)
+    print(json.dumps(results, ensure_ascii=False))
