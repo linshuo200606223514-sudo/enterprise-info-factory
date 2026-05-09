@@ -1,0 +1,23 @@
+{
+  "data_dir": "./data",
+  "reports_dir": "./reports",
+  "search": {
+    "baidu": {
+      "max_results": 10
+    },
+    "tianyancha": {
+      "api_key": "${TIANYANCHA_API_KEY}",
+      "base_url": "https://api.tianyancha.com"
+    }
+  },
+  "ai": {
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "api_key": "${OPENAI_API_KEY}"
+  },
+  "output": {
+    "json": true,
+    "markdown": true,
+    "yaml": false
+  }
+}

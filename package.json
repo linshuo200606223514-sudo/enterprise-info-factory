@@ -1,35 +1,13 @@
 {
-  "name": "enterprise-info-factory",
-  "version": "1.0.0",
-  "description": "企业信息工厂 - 从公开渠道收集企业信息并生成结构化报告",
-  "main": "api/index.js",
-  "bin": {
-    "enterprise-info": "bin/cli.js"
-  },
+  "name": "enterprise-info-collector",
+  "version": "0.1.0",
+  "description": "企业信息收集系统 Node.js 编排层",
+  "main": "src/nodejs/collector/index.js",
   "scripts": {
-    "start": "node server/index.js",
-    "dev": "node server/index.js",
-    "init-db": "node server/db/init.js",
-    "import": "node bin/import-enterprise.js",
-    "cli": "node bin/cli.js",
-    "test": "node bin/cli.js search 测试公司"
+    "collect": "node src/nodejs/collector/cli.js"
   },
-  "keywords": [
-    "enterprise",
-    "info",
-    "scraper",
-    "baidu",
-    "tianyancha"
-  ],
-  "author": "",
-  "license": "MIT",
   "dependencies": {
-    "commander": "^12.1.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "mysql2": "^3.6.0",
-    "node-cron": "^4.2.1",
-    "sql.js": "^1.10.0"
+    "commander": "^11.1.0",
+    "dotenv": "^16.3.1"
   }
 }
