@@ -122,6 +122,28 @@ class WebsiteContentExtractor:
                 result['pricing'] = snippet
                 break
 
+        # 尝试找目标用户相关段落
+        for keyword in ['目标用户', '适用', '面向', '适合', '客户', '人群', '场景']:
+            idx = content.find(keyword)
+            if idx >= 0:
+                snippet = content[idx:idx+200]
+                snippet = ' '.join(snippet.split())[:150]
+                if self._is_navigation_content(snippet):
+                    continue
+                result['target_users'] = snippet
+                break
+
+        # 尝试找亮点/优势相关段落
+        for keyword in ['亮点', '优势', '特色', '特点', ' 차별화', '核心竞争']:
+            idx = content.find(keyword)
+            if idx >= 0:
+                snippet = content[idx:idx+200]
+                snippet = ' '.join(snippet.split())[:150]
+                if self._is_navigation_content(snippet):
+                    continue
+                result['highlights'] = snippet
+                break
+
         return result
 
 
