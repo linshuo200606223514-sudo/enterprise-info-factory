@@ -21,10 +21,21 @@ SEARCH_TASKS = [
 class IndustryReportGenerator:
     """行业报告生成器"""
 
-    def __init__(self, output_dir: str = "./reports"):
+    def __init__(self, output_dir: str = None):
+        # 默认输出到项目根目录的reports/文件夹
+        if output_dir is None:
+            # 从 src/python/industry_report.py 向上两级到项目根目录
+            root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            output_dir = os.path.join(root, "reports")
         self.output_dir = output_dir
-        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(self.output_dir, exist_ok=True)
         self.search_timings = {}  # 存储各路搜索耗时
+
+    @staticmethod
+    def get_default_output_dir() -> str:
+        """获取默认输出目录路径"""
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        return os.path.join(root, "reports")
 
     def generate(self, industry_keyword: str) -> Dict:
         """
@@ -42,7 +53,17 @@ class IndustryReportGenerator:
         # 编译研究报告
         report_data = self._compile_report(industry_keyword)
 
+        # 保存报告
+        self.save_json(report_data)
+        self._save_markdown_report(report_data)
+
         return report_data
+
+    def _save_markdown_report(self, report_data: Dict) -> None:
+        """保存Markdown格式报告"""
+        from industry_markdown_reporter import IndustryMarkdownReporter
+        reporter = IndustryMarkdownReporter(self.output_dir)
+        reporter.save(report_data)
 
     def _parallel_search(self, keyword: str) -> None:
         """并行执行5条搜索，使用ThreadPoolExecutor真正异步"""
@@ -72,8 +93,8 @@ class IndustryReportGenerator:
             for future in concurrent.futures.as_completed(futures):
                 name, elapsed, success = future.result()
                 self.search_timings[name] = {"elapsed": round(elapsed, 2), "success": success}
-                status = "✅" if success else "❌"
-                print(f"  {status} {name}搜索完成，耗时{elapsed:.1f}秒")
+                status = "[OK]" if success else "[FAIL]"
+                print(f"  {status} {name} search completed in {elapsed:.1f}s")
 
     def _load_json(self, filepath: str) -> Dict:
         """加载JSON文件"""

@@ -8,7 +8,10 @@ from typing import Dict
 class IndustryMarkdownReporter:
     """行业报告Markdown生成器"""
 
-    def __init__(self, output_dir: str = "./reports"):
+    def __init__(self, output_dir: str = None):
+        if output_dir is None:
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            output_dir = os.path.join(os.path.dirname(script_dir), "reports")
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
 
@@ -27,27 +30,41 @@ class IndustryMarkdownReporter:
         insights = report_data.get('key_insights', {})
         lines.append(f"- **主要玩家数**: {insights.get('player_count', 0)} 个")
         lines.append(f"- **近期动态**: {insights.get('news_count', 0)} 条")
+        lines.append(f"- **竞品数量**: {insights.get('competitor_count', 0)} 个")
         lines.append(f"- **市场活跃度**: {insights.get('market_activity', 'unknown')}")
         lines.append(f"- **市场概述**: {insights.get('summary', '暂无数据')}")
 
-        # 头部玩家
+        # 搜索耗时分析
+        timings = report_data.get('search_timings', {})
+        if timings:
+            lines.extend(["", "### 🔍 信息收集效率"])
+            for name, info in timings.items():
+                label = {"main": "头部玩家", "news": "新闻动态", "compare": "竞品对比", "trend": "趋势分析", "community": "社区评价"}.get(name, name)
+                status = "✅" if info.get("success") else "❌"
+                elapsed = info.get("elapsed", 0)
+                lines.append(f"- {label}: {elapsed:.1f}秒 {status}")
+
+        # 头部玩家（带详情）
         players = report_data.get('top_players', [])
         if players:
             lines.extend(["", "## 🏢 头部玩家"])
-            lines.append("| 名称 | 官网 | 来源 |")
-            lines.append("|------|------|------|")
+            lines.append("")
+            lines.append("| 名称 | 核心功能 | 定价 |")
+            lines.append("|------|----------|------|")
             for p in players:
-                name = p.get('name', '未知')[:40]
-                url = p.get('url', '')
-                domain = p.get('domain', '')
-                lines.append(f"| {name} | [{domain}]({url}) | {domain} |")
+                name = p.get('name', '未知')[:35]
+                func = p.get('core_functions', '未提及')[:40]
+                pricing = p.get('pricing', '未提及')[:30]
+                func_clean = func.replace('|', '\\|').replace('\n', ' ')
+                pricing_clean = pricing.replace('|', '\\|').replace('\n', ' ')
+                lines.append(f"| {name} | {func_clean} | {pricing_clean} |")
 
         # 最新动态
         news = report_data.get('latest_news', [])
         if news:
             lines.extend(["", "## 📰 最新动态"])
-            for n in news:
-                title = n.get('title', '未知')
+            for n in news[:8]:
+                title = n.get('title', '未知')[:60]
                 url = n.get('url', '')
                 source = n.get('source', '')
                 lines.append(f"- **{title}** — [{source}]({url})")
@@ -65,8 +82,18 @@ class IndustryMarkdownReporter:
         trends = report_data.get('trends', [])
         if trends:
             lines.extend(["", "## 📈 行业趋势"])
-            for t in trends:
+            for t in trends[:6]:
                 lines.append(f"- {t}")
+
+        # 社区评价
+        community = report_data.get('community', [])
+        if community:
+            lines.extend(["", "## 💬 社区评价"])
+            for c in community[:5]:
+                title = c.get('title', '')[:60]
+                url = c.get('url', '')
+                source = c.get('source', '')
+                lines.append(f"- [{title}]({url}) — {source}")
 
         lines.extend(["", "---", f"*本报告由企业信息收集系统自动生成*"])
 
