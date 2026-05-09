@@ -11,14 +11,17 @@ function runPythonScript(scriptPath, args) {
         const env = { ...process.env, PYTHONIOENCODING: 'utf-8' };
         const proc = spawn('python', [scriptPath, ...argList], { env });
 
-        let stdout = '';
-        let stderr = '';
-        proc.stdout.on('data', (data) => { stdout += data.toString(); });
-        proc.stderr.on('data', (data) => { stderr += data.toString(); });
+        let stdoutChunks = [];
+        let stderrChunks = [];
+        proc.stdout.on('data', (data) => { stdoutChunks.push(data); });
+        proc.stderr.on('data', (data) => { stderrChunks.push(data); });
 
         proc.on('close', (code) => {
-            if (code === 0) resolve(stdout.trim());
-            else {
+            if (code === 0) {
+                const stdout = Buffer.concat(stdoutChunks).toString('utf-8');
+                resolve(stdout.trim());
+            } else {
+                const stderr = Buffer.concat(stderrChunks).toString('utf-8');
                 console.error('Python stderr:', stderr.substring(0, 500));
                 reject(new Error(`Python script failed with code ${code}`));
             }

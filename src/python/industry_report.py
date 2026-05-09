@@ -116,6 +116,7 @@ class IndustryReportGenerator:
             return
 
         output_dir = "C:/tmp/industry_report"
+        os.makedirs(output_dir, exist_ok=True)
         extract_file = os.path.join(output_dir, "extract.json")
 
         # 构建URL列表（最多5个）
@@ -123,10 +124,12 @@ class IndustryReportGenerator:
         if not urls:
             return
 
-        # 调用tavily extract
+        # 调用tavily extract，使用env设置UTF-8编码
         url_args = ' '.join(f'"{u}"' for u in urls)
         cmd = f'tvly extract {url_args} --json -o {extract_file}'
-        subprocess.run(cmd, shell=True, capture_output=True)
+        env = os.environ.copy()
+        env['PYTHONIOENCODING'] = 'utf-8'
+        subprocess.run(cmd, shell=True, capture_output=True, env=env)
 
         # 解析提取结果
         extract_data = self._load_json(extract_file)
@@ -143,6 +146,9 @@ class IndustryReportGenerator:
         """从内容中解析核心功能"""
         if not content or len(content) < 50:
             return "官网未提供详细信息"
+        # 检查是否乱码（替换字符过多）
+        if self._is_garbled(content):
+            return "内容解析失败（编码问题）"
         # 清理乱码字符（显示为 ? 或 �）
         cleaned = self._clean_garbled(content)
         if len(cleaned) < 50:
@@ -163,6 +169,9 @@ class IndustryReportGenerator:
         """从内容中解析定价模式"""
         if not content or len(content) < 50:
             return "官网未提供定价信息"
+        # 检查是否乱码
+        if self._is_garbled(content):
+            return "定价信息解析失败（编码问题）"
         # 清理乱码字符
         cleaned = self._clean_garbled(content)
         if len(cleaned) < 50:
@@ -176,6 +185,19 @@ class IndustryReportGenerator:
                 return snippet + "..." if len(snippet) >= 150 else snippet
         return "官网未提供定价信息"
 
+    def _is_garbled(self, content: str) -> bool:
+        """检测内容是否乱码"""
+        if not content:
+            return True
+        # 统计替换字符和问号的比例
+        replacement_count = content.count('�')  # �
+        question_count = content.count('?')
+        total_chars = len(content)
+        if total_chars == 0:
+            return True
+        # 如果替换字符或问号超过5%，认为是乱码
+        return (replacement_count + question_count) / total_chars > 0.05
+
     def _clean_garbled(self, content: str) -> str:
         """清理乱码字符，保留可读中文"""
         import re
@@ -184,7 +206,7 @@ class IndustryReportGenerator:
         cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', ' ', content)
         # 移除过多的问号（乱码标记）
         cleaned = re.sub(r'\?{3,}', ' ', cleaned)
-        # 将非可打印字符序列替换为单空格
+        # 将非可打印字符序列替换为单空格（Windows代码页字符）
         cleaned = re.sub(r'[\x93\x94\x95\x96\x97\x98\x99\x9c\x9d\x9e\x9f\x91\x92]', ' ', cleaned)
         return cleaned
 
