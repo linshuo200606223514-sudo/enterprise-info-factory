@@ -17,25 +17,26 @@ class EntityExtractor:
         if self.api_key:
             self.client = OpenAI(api_key=self.api_key)
 
-    def extract(self, raw_data: Dict, industry_context: Dict = None) -> Dict:
+    def extract(self, raw_data: Dict, industry_context: Dict = None, sentiment_data: Dict = None) -> Dict:
         """
         从原始搜索数据中提取结构化实体（LLM推理版）
 
         Args:
             raw_data: 包含搜索结果的原始数据
             industry_context: 可选，行业研究背景数据
+            sentiment_data: 可选，舆情分析数据
 
         Returns:
             Dict - LLM推理的企业画像
         """
         if not self.client:
-            return self._extract_by_rules(raw_data, industry_context)
+            return self._extract_by_rules(raw_data, industry_context, sentiment_data)
 
         combined_text = self._combine_text(raw_data)
         if len(combined_text.strip()) < 50:
-            return self._extract_by_rules(raw_data, industry_context)
+            return self._extract_by_rules(raw_data, industry_context, sentiment_data)
 
-        return self._extract_by_llm(combined_text, industry_context)
+        return self._extract_by_llm(combined_text, industry_context, sentiment_data)
 
     def _combine_text(self, raw_data: Dict) -> str:
         texts = []
@@ -54,8 +55,8 @@ class EntityExtractor:
                     texts.append(f"【工商】{item}")
         return "\n\n".join(texts)
 
-    def _extract_by_llm(self, combined_text: str, industry_context: Dict = None) -> Dict:
-        prompt = self._build_prompt(combined_text, industry_context)
+    def _extract_by_llm(self, combined_text: str, industry_context: Dict = None, sentiment_data: Dict = None) -> Dict:
+        prompt = self._build_prompt(combined_text, industry_context, sentiment_data)
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -71,9 +72,9 @@ class EntityExtractor:
             return self._validate_and_fill(result)
         except Exception as e:
             print(f"LLM调用失败: {e}")
-            return self._fallback_result(industry_context)
+            return self._fallback_result(industry_context, sentiment_data)
 
-    def _build_prompt(self, combined_text: str, industry_context: Dict = None) -> str:
+    def _build_prompt(self, combined_text: str, industry_context: Dict = None, sentiment_data: Dict = None) -> str:
         # 如果有行业背景，加入prompt
         industry_section = ""
         if industry_context:
@@ -89,11 +90,28 @@ class EntityExtractor:
 - 竞品: {', '.join(competitors[:3])}
 """
 
+        # 如果有舆情数据，加入prompt
+        sentiment_section = ""
+        if sentiment_data:
+            score = sentiment_data.get('sentiment_score', 0)
+            label = sentiment_data.get('sentiment_label', 'unknown')
+            pos = sentiment_data.get('positive_count', 0)
+            neg = sentiment_data.get('negative_count', 0)
+            concerns = sentiment_data.get('key_concerns', [])
+            sentiment_section = f"""
+
+舆情分析：
+- 情感得分: {score} ({label})
+- 正面: {pos}条 | 负面: {neg}条
+- 主要关切: {', '.join(concerns[:3])}
+"""
+
         return f"""从以下信息推断企业画像，输出JSON：
 
 信息：
 {combined_text[:6000]}
 {industry_section}
+{sentiment_section}
 
 输出格式：
 {{
@@ -139,27 +157,38 @@ class EntityExtractor:
                 result[k] = v
         return result
 
-    def _extract_by_rules(self, raw_data: Dict, industry_context: Dict = None) -> Dict:
+    def _extract_by_rules(self, raw_data: Dict, industry_context: Dict = None, sentiment_data: Dict = None) -> Dict:
         text = raw_data.get("text", self._combine_text(raw_data))
         name_match = re.search(r'([一-龥]{2,20}(?:造纸厂|纸业|包装|科技|有限|公司))', text)
         keywords = ["纸箱", "包装", "造纸", "印刷", "纸板", "纸制品", "蜂窝板", "瓦楞纸"]
         found = list(set([k for k in keywords if k in text]))
 
-        # 基于行业背景调整痛点
-        pain_points = []
-        if industry_context:
-            # 有行业背景时，更精准的推断
-            pain_points = [
-                {"issue": "订单管理困难", "basis": "造纸箱行业通用痛点", "severity": "medium"},
-                {"issue": "生产排程混乱", "basis": "造纸箱行业通用痛点", "severity": "medium"},
-                {"issue": "成本核算不准", "basis": "造纸箱行业通用痛点", "severity": "low"}
-            ]
+        # 基于舆情数据调整痛点
+        pain_points = [
+            {"issue": "订单管理困难", "basis": "造纸箱行业通用痛点", "severity": "medium"},
+            {"issue": "生产排程混乱", "basis": "造纸箱行业通用痛点", "severity": "medium"},
+            {"issue": "成本核算不准", "basis": "造纸箱行业通用痛点", "severity": "low"}
+        ]
+
+        # 如果有负面舆情，添加相关痛点
+        if sentiment_data and sentiment_data.get('negative_count', 0) > 0:
+            concerns = sentiment_data.get('key_concerns', [])
+            for concern in concerns[:2]:
+                pain_points.append({
+                    "issue": f"舆情关切: {concern}",
+                    "basis": "基于网络舆情分析",
+                    "severity": "medium"
+                })
+
+        # 情感数据
+        sentiment_score = sentiment_data.get('sentiment_score', 0) if sentiment_data else 0
+        sentiment_label = sentiment_data.get('sentiment_label', 'unknown') if sentiment_data else 'unknown'
+        if sentiment_label == 'negative':
+            sentiment_label = 'negative'
+        elif sentiment_label == 'positive':
+            sentiment_label = 'positive'
         else:
-            pain_points = [
-                {"issue": "订单管理困难", "basis": "造纸箱行业通用痛点", "severity": "medium"},
-                {"issue": "生产排程混乱", "basis": "造纸箱行业通用痛点", "severity": "medium"},
-                {"issue": "成本核算不准", "basis": "造纸箱行业通用痛点", "severity": "low"}
-            ]
+            sentiment_label = 'neutral'
 
         return {
             "company_name": name_match.group(1) if name_match else "未确认",
@@ -169,20 +198,25 @@ class EntityExtractor:
             "competitive_advantages": [],
             "potential_pain_points": pain_points,
             "digital_maturity": {"level": "unknown", "indicators": [], "description": "信息不足"},
-            "market_reputation": {"sentiment": "unknown", "evidence": [], "concerns": []},
+            "market_reputation": {
+                "sentiment": sentiment_label,
+                "evidence": [],
+                "concerns": [c for c in (sentiment_data.get('key_concerns', []) if sentiment_data else [])]
+            },
             "recommendations": ["建议先进行实地调研获取更多信息"],
             "confidence_score": 0.2,
             "data_gaps": ["缺少公开数据"]
         }
 
-    def _fallback_result(self, industry_context: Dict = None) -> Dict:
-        return self._extract_by_rules({}, industry_context)
+    def _fallback_result(self, industry_context: Dict = None, sentiment_data: Dict = None) -> Dict:
+        return self._extract_by_rules({}, industry_context, sentiment_data)
 
 
 if __name__ == "__main__":
     search_results_json = None
     tianyancha_data_json = None
     industry_context_json = None
+    sentiment_json = None
 
     for arg in sys.argv[1:]:
         if arg.startswith("search_results="):
@@ -191,6 +225,8 @@ if __name__ == "__main__":
             tianyancha_data_json = arg.split("=", 1)[1]
         elif arg.startswith("industry_context="):
             industry_context_json = arg.split("=", 1)[1]
+        elif arg.startswith("sentiment="):
+            sentiment_json = arg.split("=", 1)[1]
 
     if not search_results_json or not tianyancha_data_json:
         print("Error: search_results and tianyancha_data are required")
@@ -199,10 +235,12 @@ if __name__ == "__main__":
     search_results = json.loads(search_results_json)
     tianyancha_data = json.loads(tianyancha_data_json)
     industry_context = json.loads(industry_context_json) if industry_context_json else None
+    sentiment = json.loads(sentiment_json) if sentiment_json else None
 
     extractor = EntityExtractor()
     result = extractor.extract(
         {"search_results": search_results, "tianyancha_data": tianyancha_data},
-        industry_context
+        industry_context,
+        sentiment
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))

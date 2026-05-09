@@ -16,10 +16,10 @@ async function runCollector(companyName, options = {}) {
     const industryKeyword = options.industry || "造纸箱行业 ERP 数字化转型";
 
     console.log(`🔍 开始收集企业信息: ${companyName}`);
-    console.log(`📡 数据源: Tavily搜索, 天眼查, 行业研究`);
-    console.log(`🤖 AI分析: LLM驱动 + 行业背景融合`);
+    console.log(`📡 数据源: 搜索, 工商, 行业, 舆情`);
+    console.log(`🤖 AI分析: LLM驱动 + 行业背景 + 舆情融合`);
 
-    // 第一步：行业研究（获取行业背景）
+    // 第一步：行业研究
     console.log('\n📌 步骤0: 行业研究...');
     const industryContextRaw = await runPythonScript('src/python/search/industry_researcher.py', {
         keyword: industryKeyword,
@@ -29,8 +29,18 @@ async function runCollector(companyName, options = {}) {
     console.log(`   📊 行业头部: ${industryContext.top_players?.length || 0} 个`);
     console.log(`   📰 行业动态: ${industryContext.news?.length || 0} 条`);
 
-    // 第二步：多数据源搜索（优先Tavily）
-    console.log('\n📌 步骤1: 执行多数据源搜索...');
+    // 第二步：舆情分析
+    console.log('\n📌 步骤1: 舆情分析...');
+    const sentimentRaw = await runPythonScript('src/python/search/sentiment_analyzer.py', {
+        company_name: companyName
+    });
+    const sentimentData = JSON.parse(sentimentRaw);
+    const sentiment = sentimentData.sentiment_analysis || {};
+    console.log(`   📊 舆情得分: ${sentiment.sentiment_score || 0} (${sentiment.sentiment_label || 'unknown'})`);
+    console.log(`   📊 正面: ${sentiment.positive_count || 0} | 负面: ${sentiment.negative_count || 0}`);
+
+    // 第三步：多数据源搜索
+    console.log('\n📌 步骤2: 执行多数据源搜索...');
     const searchResultsRaw = await runPythonScript('src/python/search/multi_search.py', {
         keyword: companyName,
         max_results: config.search.baidu.max_results
@@ -43,19 +53,20 @@ async function runCollector(companyName, options = {}) {
     }
     console.log(`   📊 获得 ${searchResults.length} 条搜索结果`);
 
-    // 第三步：天眼查API
-    console.log('\n📌 步骤2: 查询天眼查工商信息...');
+    // 第四步：天眼查API
+    console.log('\n📌 步骤3: 查询天眼查工商信息...');
     const tianyanchaDataRaw = await runPythonScript('src/python/search/tianyancha_api.py', {
         company_name: companyName
     });
     const tianyanchaData = JSON.parse(tianyanchaDataRaw);
 
-    // 第四步：AI实体提取（带行业背景）
-    console.log('\n📌 步骤3: AI分析提取结构化信息...');
+    // 第五步：AI实体提取（带行业背景+舆情）
+    console.log('\n📌 步骤4: AI分析提取结构化信息...');
     const llmAnalysisRaw = await runPythonScript('src/python/ai/entity_extractor.py', {
         search_results: JSON.stringify(searchResults),
         tianyancha_data: JSON.stringify(tianyanchaData),
-        industry_context: JSON.stringify(industryContext)
+        industry_context: JSON.stringify(industryContext),
+        sentiment: JSON.stringify(sentiment)
     });
     const llmAnalysis = JSON.parse(llmAnalysisRaw);
 
@@ -67,14 +78,15 @@ async function runCollector(companyName, options = {}) {
         console.log(`   📋 建议: ${llmAnalysis.recommendations[0]}`);
     }
 
-    // 第五步：输出结果
-    console.log('\n📌 步骤4: 生成输出文件...');
+    // 第六步：输出结果
+    console.log('\n📌 步骤5: 生成输出文件...');
     const outputData = {
         company_name: llmAnalysis.company_name || companyName,
         collected_at: new Date().toISOString(),
-        sources: ['tavily', 'baidu', 'tianyancha', 'industry_research'],
+        sources: ['tavily', 'baidu', 'tianyancha', 'industry_research', 'sentiment'],
         search_results: searchResults,
         industry_context: industryContext,
+        sentiment_analysis: sentiment,
         raw_data: {
             tianyancha: tianyanchaData
         },
