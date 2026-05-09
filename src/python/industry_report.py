@@ -3,10 +3,20 @@ import os
 import sys
 import json
 import subprocess
-from typing import Dict, List
+import time
+from typing import Dict, List, Tuple
 from datetime import datetime
 
 from ai.website_extractor import WebsiteContentExtractor
+
+# 并行搜索任务配置
+SEARCH_TASKS = [
+    {"name": "main", "keyword_suffix": "头部玩家 平台 官网 2026", "max_results": 8, "file": "main.json"},
+    {"name": "news", "keyword_suffix": "最新动态 行业新闻 2026", "max_results": 6, "file": "news.json"},
+    {"name": "compare", "keyword_suffix": "竞品对比 推荐 选型", "max_results": 6, "file": "compare.json"},
+    {"name": "trend", "keyword_suffix": "趋势 数字化转型 技术动态", "max_results": 5, "file": "trend.json"},
+    {"name": "community", "keyword_suffix": "用户评价 知乎 v2ex", "max_results": 5, "file": "community.json"},
+]
 
 class IndustryReportGenerator:
     """行业报告生成器"""
@@ -14,6 +24,7 @@ class IndustryReportGenerator:
     def __init__(self, output_dir: str = "./reports"):
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
+        self.search_timings = {}  # 存储各路搜索耗时
 
     def generate(self, industry_keyword: str) -> Dict:
         """
@@ -34,24 +45,35 @@ class IndustryReportGenerator:
         return report_data
 
     def _parallel_search(self, keyword: str) -> None:
-        """并行执行5条搜索"""
+        """并行执行5条搜索，使用ThreadPoolExecutor真正异步"""
+        import concurrent.futures
+
         output_dir = "C:/tmp/industry_report"
         os.makedirs(output_dir, exist_ok=True)
 
-        main_file = os.path.join(output_dir, "main.json")
-        news_file = os.path.join(output_dir, "news.json")
-        compare_file = os.path.join(output_dir, "compare.json")
-        trend_file = os.path.join(output_dir, "trend.json")
-        community_file = os.path.join(output_dir, "community.json")
+        def run_single_search(task: Dict) -> Tuple[str, float, bool]:
+            """执行单条搜索，返回(task_name, elapsed, success)"""
+            start = time.time()
+            output_file = os.path.join(output_dir, task["file"])
+            cmd = f'tvly search "{keyword} {task["keyword_suffix"]}" --max-results {task["max_results"]} -o {output_file}'
+            try:
+                subprocess.run(cmd, shell=True, capture_output=True, timeout=120)
+                elapsed = time.time() - start
+                return (task["name"], elapsed, True)
+            except Exception as e:
+                elapsed = time.time() - start
+                print(f"搜索失败 [{task['name']}]: {e}")
+                return (task["name"], elapsed, False)
 
-        cmd1 = f'tvly search "{keyword} 头部玩家 平台 官网 2026" --max-results 8 -o {main_file}'
-        cmd2 = f'tvly search "{keyword} 最新动态 行业新闻 2026" --max-results 6 -o {news_file}'
-        cmd3 = f'tvly search "{keyword} 竞品对比 推荐 选型" --max-results 6 -o {compare_file}'
-        cmd4 = f'tvly search "{keyword} 趋势 数字化转型 技术动态" --max-results 5 -o {trend_file}'
-        cmd5 = f'tvly search "{keyword} 用户评价 知乎 v2ex" --max-results 5 -o {community_file}'
-
-        combined = f"({cmd1}) & ({cmd2}) & ({cmd3}) & ({cmd4}) & ({cmd5}) & wait"
-        subprocess.run(combined, shell=True, capture_output=True)
+        # 并行执行所有搜索任务
+        self.search_timings = {}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {executor.submit(run_single_search, task): task for task in SEARCH_TASKS}
+            for future in concurrent.futures.as_completed(futures):
+                name, elapsed, success = future.result()
+                self.search_timings[name] = {"elapsed": round(elapsed, 2), "success": success}
+                status = "✅" if success else "❌"
+                print(f"  {status} {name}搜索完成，耗时{elapsed:.1f}秒")
 
     def _load_json(self, filepath: str) -> Dict:
         """加载JSON文件"""
@@ -102,6 +124,7 @@ class IndustryReportGenerator:
         report = {
             "industry": keyword,
             "generated_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "search_timings": self.search_timings,
             "top_players": top_players[:8],
             "latest_news": self._extract_news(news_data),
             "competitors": competitors,
