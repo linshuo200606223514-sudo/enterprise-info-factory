@@ -57,17 +57,9 @@ class BaiduSearch:
             ''')
 
             await browser.close()
-            # 清理结果中的控制字符，避免JSON解析错误
-            cleaned = []
-            for item in (results or []):
-                cleaned_item = {}
-                for k, v in item.items():
-                    if isinstance(v, str):
-                        # 移除控制字符，换行符等替换为空格
-                        v = ''.join(c if ord(c) >= 32 else ' ' for c in v)
-                    cleaned_item[k] = v
-                cleaned.append(cleaned_item)
-            return cleaned
+
+            # 直接返回结果，不做额外清理（避免编码问题）
+            return results or []
 
 if __name__ == "__main__":
     # 解析 keyword=xxx max_results=N 格式的命令行参数
