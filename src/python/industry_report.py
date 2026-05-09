@@ -196,61 +196,121 @@ class IndustryReportGenerator:
         return report
 
     def _extract_player_details(self, players: List[Dict]) -> None:
-        """对头部玩家URL提取详情（核心功能、定价模式）"""
+        """对头部玩家URL提取详情（核心功能、定价模式）- 并行处理"""
         if not players:
             return
 
+        import concurrent.futures
+        from industry_markdown_reporter import IndustryMarkdownReporter
+
         output_dir = "C:/tmp/industry_report"
         os.makedirs(output_dir, exist_ok=True)
-        extract_file = os.path.join(output_dir, "extract.json")
 
-        # 构建URL列表（最多5个）
-        urls = [p.get('url', '') for p in players[:5] if p.get('url')]
-        if not urls:
-            return
-
-        # 优先用Tavily extract
-        url_args = ' '.join(f'"{u}"' for u in urls)
-        cmd = f'tvly extract {url_args} --json -o {extract_file}'
-        env = os.environ.copy()
-        env['PYTHONIOENCODING'] = 'utf-8'
-        subprocess.run(cmd, shell=True, capture_output=True, env=env)
-
-        # 检查Tavily结果质量
-        extract_data = self._load_json(extract_file)
-        results = extract_data.get('results', [])
-
-        # 检查是否有乱码
-        garbled_count = 0
-        for r in results:
-            raw = r.get('raw_content', '')
-            if raw and self._is_garbled(raw):
-                garbled_count += 1
-
-        # 为每个player补充详情，优先用LLM提取
-        llm_extractor = WebsiteContentExtractor()
-        for i, player in enumerate(players[:5]):
+        # 并行提取每个player的详情
+        def extract_single_player(player: Dict) -> Dict:
+            """提取单个player的详情"""
             url = player.get('url', '')
-            if i < len(results):
-                raw_content = results[i].get('raw_content', '')
-                if not self._is_garbled(raw_content) and len(raw_content) > 200:
-                    # 内容正常，用LLM提取结构化信息
-                    llm_result = llm_extractor.extract(raw_content, url)
-                    player['core_functions'] = llm_result.get('core_functions', '')
-                    player['pricing'] = llm_result.get('pricing', '')
-                    player['target_users'] = llm_result.get('target_users', '')
-                    player['highlights'] = llm_result.get('highlights', '')
-                else:
-                    # 内容乱码，用scrapling备用
-                    self._extract_single_with_scrapling(player)
-                    # 尝试用LLM提取
-                    if player.get('core_functions'):
-                        llm_result = llm_extractor.extract(player.get('core_functions', ''), url)
-                        player['core_functions'] = llm_result.get('core_functions', player.get('core_functions', ''))
-                        player['pricing'] = llm_result.get('pricing', player.get('pricing', ''))
-            elif url:
-                # 无Tavily结果，直接用scrapling
-                self._extract_single_with_scrapling(player)
+            if not url:
+                return player
+
+            # 使用scrapling提取原始内容
+            raw_content = self._fetch_with_scrapling(url)
+
+            if raw_content and len(raw_content) > 100 and not self._is_garbled(raw_content):
+                # 内容有效，用提取器分析
+                extractor = WebsiteContentExtractor()
+                result = extractor.extract(raw_content, url)
+                player['core_functions'] = result.get('core_functions', '未提及')
+                player['pricing'] = result.get('pricing', '未提及')
+                player['target_users'] = result.get('target_users', '未提及')
+                player['highlights'] = result.get('highlights', '未提及')
+            elif raw_content:
+                # 内容太短或乱码，尝试从原始内容中找关键词
+                player['core_functions'] = self._parse_core_functions(raw_content)
+                player['pricing'] = self._parse_pricing(raw_content)
+
+            return player
+
+        # 并行处理最多5个player
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {executor.submit(extract_single_player, p): p for p in players[:5]}
+            for future in concurrent.futures.as_completed(futures):
+                updated_player = future.result()
+                # player已经通过引用更新
+
+    def _fetch_with_scrapling(self, url: str) -> str:
+        """使用scrapling获取页面内容"""
+        try:
+            from scrapling.fetchers import Fetcher
+        except ImportError:
+            return ""
+
+        try:
+            page = Fetcher.get(url)
+            content_parts = []
+
+            # 提取标题
+            title = page.css('title::text').get()
+            if title:
+                content_parts.append(f"标题: {title}")
+
+            # 提取meta描述
+            meta_desc = page.css('meta[name="description"]::attr(content)').get()
+            if meta_desc:
+                content_parts.append(f"描述: {meta_desc}")
+
+            # 提取正文段落
+            for p in page.css('p::text')[:15]:
+                text = p.get().strip() if hasattr(p, 'get') else str(p).strip()
+                if text and len(text) > 20:
+                    content_parts.append(text)
+
+            return ' '.join(content_parts)
+        except Exception:
+            return ""
+
+    def _parse_core_functions(self, content: str) -> str:
+        """从内容中解析核心功能"""
+        if not content or len(content) < 50:
+            return "官网未提供详细信息"
+        if self._is_garbled(content):
+            return "内容解析失败（编码问题）"
+        cleaned = self._clean_garbled(content)
+        if len(cleaned) < 50:
+            return "官网未提供详细信息"
+
+        keywords = ['核心功能', '主要功能', '产品功能', '功能介绍', '解决方案', '库存管理', '财务管理', '订单管理']
+        for kw in keywords:
+            if kw in cleaned:
+                idx = cleaned.find(kw)
+                snippet = cleaned[idx:idx+300]
+                snippet = ' '.join(snippet.split())[:200]
+                return snippet + "..." if len(snippet) >= 200 else snippet
+        return cleaned[:150] + "..." if len(cleaned) >= 150 else cleaned
+
+    def _parse_pricing(self, content: str) -> str:
+        """从内容中解析定价模式"""
+        if not content or len(content) < 50:
+            return "官网未提供定价信息"
+        if self._is_garbled(content):
+            return "定价信息解析失败（编码问题）"
+        cleaned = self._clean_garbled(content)
+        if len(cleaned) < 50:
+            return "官网未提供定价信息"
+
+        if self._is_navigation_content(cleaned):
+            return "官网未提供定价信息"
+
+        keywords = ['定价', '价格', '收费', '费用', '套餐', '版本', '元/', '元/年', '元/月', '元起', '元/人']
+        for kw in keywords:
+            if kw in cleaned:
+                idx = cleaned.find(kw)
+                snippet = cleaned[idx:idx+200]
+                snippet = ' '.join(snippet.split())[:150]
+                if self._is_navigation_content(snippet):
+                    continue
+                return snippet + "..." if len(snippet) >= 150 else snippet
+        return "官网未提供定价信息"
 
     def _extract_single_with_scrapling(self, player: Dict) -> None:
         """使用scrapling提取单个player详情"""
