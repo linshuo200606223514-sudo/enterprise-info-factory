@@ -15,7 +15,7 @@ SEARCH_TASKS = [
     {"name": "news", "keyword_suffix": "最新动态 行业新闻 2026", "max_results": 6, "file": "news.json"},
     {"name": "compare", "keyword_suffix": "竞品对比 推荐 选型", "max_results": 6, "file": "compare.json"},
     {"name": "trend", "keyword_suffix": "趋势 数字化转型 技术动态", "max_results": 5, "file": "trend.json"},
-    {"name": "community", "keyword_suffix": "用户评价 知乎 v2ex", "max_results": 5, "file": "community.json"},
+    {"name": "community", "keyword_suffix": "用户体验 口碑 论坛 讨论", "max_results": 5, "file": "community.json"},
 ]
 
 class IndustryReportGenerator:
@@ -344,57 +344,6 @@ class IndustryReportGenerator:
                     player['core_functions'] = content[:300] + '...' if len(content) > 300 else content
         except Exception:
             pass
-
-    def _parse_core_functions(self, content: str) -> str:
-        """从内容中解析核心功能"""
-        if not content or len(content) < 50:
-            return "官网未提供详细信息"
-        # 检查是否乱码（替换字符过多）
-        if self._is_garbled(content):
-            return "内容解析失败（编码问题）"
-        # 清理乱码字符（显示为 ? 或 �）
-        cleaned = self._clean_garbled(content)
-        if len(cleaned) < 50:
-            return "官网未提供详细信息"
-        # 简单关键词匹配
-        keywords = ['核心功能', '主要功能', '产品功能', '功能介绍', '解决方案', '库存管理', '财务管理', '订单管理']
-        for kw in keywords:
-            if kw in cleaned:
-                # 找到关键词后的100-300字
-                idx = cleaned.find(kw)
-                snippet = cleaned[idx:idx+300]
-                # 清理多余空白
-                snippet = ' '.join(snippet.split())[:200]
-                return snippet + "..." if len(snippet) >= 200 else snippet
-        return cleaned[:150] + "..." if len(cleaned) >= 150 else cleaned
-
-    def _parse_pricing(self, content: str) -> str:
-        """从内容中解析定价模式"""
-        if not content or len(content) < 50:
-            return "官网未提供定价信息"
-        # 检查是否乱码
-        if self._is_garbled(content):
-            return "定价信息解析失败（编码问题）"
-        # 清理乱码字符
-        cleaned = self._clean_garbled(content)
-        if len(cleaned) < 50:
-            return "官网未提供定价信息"
-
-        # 跳过导航/标签链接模式（如 [文字](URL) 形式的导航）
-        if self._is_navigation_content(cleaned):
-            return "官网未提供定价信息"
-
-        keywords = ['定价', '价格', '收费', '费用', '套餐', '版本', '元/', '元/年', '元/月', '元起', '元/人']
-        for kw in keywords:
-            if kw in cleaned:
-                idx = cleaned.find(kw)
-                snippet = cleaned[idx:idx+200]
-                snippet = ' '.join(snippet.split())[:150]
-                # 再次检查是否是导航
-                if self._is_navigation_content(snippet):
-                    continue
-                return snippet + "..." if len(snippet) >= 150 else snippet
-        return "官网未提供定价信息"
 
     def _is_navigation_content(self, content: str) -> bool:
         """检测是否是导航/标签类内容（非正文）"""
