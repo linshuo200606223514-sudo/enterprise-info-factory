@@ -88,6 +88,7 @@ class IndustryReportGenerator:
 
         # 并行执行所有搜索任务
         self.search_timings = {}
+        self.search_quality = {}  # 搜索质量分析
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = {executor.submit(run_single_search, task): task for task in SEARCH_TASKS}
             for future in concurrent.futures.as_completed(futures):
@@ -96,18 +97,55 @@ class IndustryReportGenerator:
                 status = "[OK]" if success else "[FAIL]"
                 print(f"  {status} {name} search completed in {elapsed:.1f}s")
 
+        # 分析搜索结果质量
+        self._analyze_search_quality()
+
+    def _analyze_search_quality(self) -> None:
+        """分析各路搜索结果的质量"""
+        output_dir = "C:/tmp/industry_report"
+        self.search_quality = {}
+
+        for task in SEARCH_TASKS:
+            name = task["name"]
+            filepath = os.path.join(output_dir, task["file"])
+            data = self._load_json(filepath)
+            results = data.get('results', [])
+
+            if not results:
+                self.search_quality[name] = {"status": "empty", "count": 0}
+                continue
+
+            # 统计各指标
+            total = len(results)
+            garbled_count = sum(1 for r in results if self._is_garbled(r.get('title', '')))
+            nav_count = sum(1 for r in results if self._is_navigation_content(r.get('title', '')))
+            avg_score = sum(r.get('score', 0) for r in results) / total if total > 0 else 0
+
+            self.search_quality[name] = {
+                "count": total,
+                "avg_score": round(avg_score, 3),
+                "garbled": garbled_count,
+                "nav_heavy": nav_count,
+                "status": "good" if avg_score > 0.5 and garbled_count == 0 else "warning" if avg_score > 0.3 else "poor"
+            }
+
     def _load_json(self, filepath: str) -> Dict:
         """加载JSON文件"""
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except json.JSONDecodeError:
-            # 尝试用errors='replace'修复编码问题
+            # JSON格式错误，尝试修复常见的转义问题后重试
             try:
-                with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
+                with open(filepath, 'r', encoding='utf-8') as f:
                     content = f.read()
-                # 清理常见的无效字符
-                content = content.replace('﻿', '')  # BOM
+                # 清理BOM和控制字符
+                content = content.replace('﻿', '').replace('​', '')
+                # 修复不完整的转义（如果有用反斜杠转义的引号）
+                content = content.replace('\\"', '"')
+                # 尝试修复常见的JSON截断问题（截断到最后完整的对象）
+                if content.strip().endswith(','):
+                    content = content.rstrip(',')
                 return json.loads(content)
             except Exception:
                 return {}
@@ -146,6 +184,7 @@ class IndustryReportGenerator:
             "industry": keyword,
             "generated_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             "search_timings": self.search_timings,
+            "search_quality": self.search_quality,
             "top_players": top_players[:8],
             "latest_news": self._extract_news(news_data),
             "competitors": competitors,

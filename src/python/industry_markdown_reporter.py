@@ -37,12 +37,26 @@ class IndustryMarkdownReporter:
         # 搜索耗时分析
         timings = report_data.get('search_timings', {})
         if timings:
-            lines.extend(["", "### 🔍 信息收集效率"])
+            lines.extend(["", "### ⏱️ 信息收集效率"])
             for name, info in timings.items():
                 label = {"main": "头部玩家", "news": "新闻动态", "compare": "竞品对比", "trend": "趋势分析", "community": "社区评价"}.get(name, name)
-                status = "✅" if info.get("success") else "❌"
+                status = "[OK]" if info.get("success") else "[FAIL]"
                 elapsed = info.get("elapsed", 0)
-                lines.append(f"- {label}: {elapsed:.1f}秒 {status}")
+                lines.append(f"- {label}: {elapsed:.1f}s {status}")
+
+        # 搜索质量分析
+        quality = report_data.get('search_quality', {})
+        if quality:
+            lines.extend(["", "### 📊 搜索质量分析"])
+            lines.append("| 搜索维度 | 结果数 | 平均分 | 状态 |")
+            lines.append("|----------|--------|--------|------|")
+            for name, info in quality.items():
+                label = {"main": "头部玩家", "news": "新闻动态", "compare": "竞品对比", "trend": "趋势分析", "community": "社区评价"}.get(name, name)
+                count = info.get('count', 0)
+                avg_score = info.get('avg_score', 0)
+                status = info.get('status', 'unknown')
+                status_icon = "[OK]" if status == "good" else "[WARN]" if status == "warning" else "[FAIL]"
+                lines.append(f"| {label} | {count} | {avg_score:.3f} | {status_icon} |")
 
         # 头部玩家（带详情）
         players = report_data.get('top_players', [])
