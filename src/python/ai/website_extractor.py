@@ -8,6 +8,11 @@ class WebsiteContentExtractor:
     """使用LLM从网站内容中提取结构化信息"""
 
     def __init__(self):
+        # 先加载.env文件
+        from dotenv import load_dotenv
+        load_dotenv()
+        load_dotenv(os.path.expanduser("~/.env"))
+
         self.api_key = os.getenv("OPENAI_API_KEY")
         self.model = os.getenv("LLM_MODEL", "gpt-4o-mini")
         self.client = None
@@ -27,30 +32,9 @@ class WebsiteContentExtractor:
                 "use_cases": str       # 典型用例
             }
         """
-        if not self.client:
-            return self._fallback_extract(content)
-
-        if not content or len(content.strip()) < 100:
-            return self._fallback_extract(content)
-
-        prompt = self._build_prompt(content, url)
-
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": "你是一位专业的B2B产品分析师，擅长从网页内容中提取产品核心信息。输出严格JSON格式，用中文。"},
-                    {"role": "user", "content": prompt}
-                ],
-                response_format={"type": "json_object"},
-                temperature=0.2,
-                max_tokens=1500
-            )
-            result = json.loads(response.choices[0].message.content)
-            return self._validate_and_fill(result)
-        except Exception as e:
-            print(f"LLM提取失败: {e}")
-            return self._fallback_extract(content)
+        # 暂时禁用LLM提取，因API key格式不兼容MiniMax
+        # TODO: 配置正确的API endpoint后启用
+        return self._fallback_extract(content)
 
     def _build_prompt(self, content: str, url: str) -> str:
         url_hint = f"\n来源URL: {url}" if url else ""
@@ -84,6 +68,21 @@ class WebsiteContentExtractor:
                 result[k] = v
         return result
 
+    def _is_navigation_content(self, content: str) -> bool:
+        """检测是否是导航/标签类内容（非正文）"""
+        if not content:
+            return False
+        # URL链接模式 = 导航内容
+        if '](https://' in content:
+            return True
+        nav_patterns = ['](/', 'tag-', 'article/', 'category/']
+        nav_count = sum(content.count(p) for p in nav_patterns)
+        if nav_count > 3:
+            return True
+        if len(content) > 0 and nav_count / len(content) > 0.05:
+            return True
+        return False
+
     def _fallback_extract(self, content: str) -> Dict:
         """简单基于关键词的备用提取"""
         if not content or len(content) < 100:
@@ -108,12 +107,15 @@ class WebsiteContentExtractor:
                 result['core_functions'] = snippet
                 break
 
-        # 尝试找定价相关段落
+        # 尝试找定价相关段落（跳过导航内容）
         for keyword in ['价格', '定价', '费用', '元/', '元/年', '套餐']:
             idx = content.find(keyword)
             if idx >= 0:
                 snippet = content[idx:idx+300]
                 snippet = ' '.join(snippet.split())[:200]
+                # 跳过导航类内容
+                if self._is_navigation_content(snippet):
+                    continue
                 result['pricing'] = snippet
                 break
 
