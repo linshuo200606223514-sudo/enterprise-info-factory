@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "企业信息收集系统 Node.js 编排层",
   "main": "src/nodejs/collector/index.js",
+  "bin": {
+    "collect": "src/nodejs/collector/cli.js"
+  },
   "scripts": {
     "collect": "node src/nodejs/collector/cli.js"
   },
