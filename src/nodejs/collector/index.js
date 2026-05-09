@@ -16,7 +16,7 @@ async function runCollector(companyName, options = {}) {
     const industryKeyword = options.industry || "造纸箱行业 ERP 数字化转型";
 
     console.log(`🔍 开始收集企业信息: ${companyName}`);
-    console.log(`📡 数据源: 百度搜索, 天眼查, 行业研究`);
+    console.log(`📡 数据源: Tavily搜索, 天眼查, 行业研究`);
     console.log(`🤖 AI分析: LLM驱动 + 行业背景融合`);
 
     // 第一步：行业研究（获取行业背景）
@@ -29,13 +29,19 @@ async function runCollector(companyName, options = {}) {
     console.log(`   📊 行业头部: ${industryContext.top_players?.length || 0} 个`);
     console.log(`   📰 行业动态: ${industryContext.news?.length || 0} 条`);
 
-    // 第二步：百度搜索
-    console.log('\n📌 步骤1: 执行百度搜索...');
-    const searchResultsRaw = await runPythonScript('src/python/search/baidu_search.py', {
+    // 第二步：多数据源搜索（优先Tavily）
+    console.log('\n📌 步骤1: 执行多数据源搜索...');
+    const searchResultsRaw = await runPythonScript('src/python/search/multi_search.py', {
         keyword: companyName,
         max_results: config.search.baidu.max_results
     });
-    const searchResults = JSON.parse(searchResultsRaw);
+    let searchResults = [];
+    try {
+        searchResults = JSON.parse(searchResultsRaw);
+    } catch (e) {
+        console.log('   ⚠️ 搜索结果解析失败');
+    }
+    console.log(`   📊 获得 ${searchResults.length} 条搜索结果`);
 
     // 第三步：天眼查API
     console.log('\n📌 步骤2: 查询天眼查工商信息...');
@@ -55,7 +61,7 @@ async function runCollector(companyName, options = {}) {
 
     console.log(`   📊 置信度: ${llmAnalysis.confidence_score || 'N/A'}`);
     if (llmAnalysis.competitive_advantages?.length) {
-        console.log(`   💡 竞争优势: ${llmAnalysis.competitive_advantages.slice(0, 2).join(', ')}`);
+        console.log(`   💪 竞争优势: ${llmAnalysis.competitive_advantages.slice(0, 2).join(', ')}`);
     }
     if (llmAnalysis.recommendations?.length) {
         console.log(`   📋 建议: ${llmAnalysis.recommendations[0]}`);
@@ -66,10 +72,10 @@ async function runCollector(companyName, options = {}) {
     const outputData = {
         company_name: llmAnalysis.company_name || companyName,
         collected_at: new Date().toISOString(),
-        sources: ['baidu', 'tianyancha', 'industry_research'],
+        sources: ['tavily', 'baidu', 'tianyancha', 'industry_research'],
+        search_results: searchResults,
         industry_context: industryContext,
         raw_data: {
-            search_results: searchResults,
             tianyancha: tianyanchaData
         },
         llm_analysis: llmAnalysis

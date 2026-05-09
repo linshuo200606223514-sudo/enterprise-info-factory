@@ -1,11 +1,10 @@
 """百度搜索模块"""
 import sys
 import json
-import argparse
-from typing import List, Dict
 import urllib.parse
 import asyncio
 from playwright.async_api import async_playwright
+from typing import List, Dict
 
 class BaiduSearch:
     """百度搜索执行器"""
@@ -14,15 +13,7 @@ class BaiduSearch:
         self.max_results = max_results
 
     def search(self, keyword: str) -> List[Dict]:
-        """
-        执行百度搜索并返回结构化结果
-
-        Args:
-            keyword: 搜索关键词
-
-        Returns:
-            List[Dict] - 搜索结果列表，每项包含 title, url, abstract
-        """
+        """执行百度搜索并返回结构化结果"""
         return asyncio.run(self._search_async(keyword))
 
     async def _search_async(self, keyword: str) -> List[Dict]:
@@ -36,33 +27,73 @@ class BaiduSearch:
 
             await page.goto(url)
             await page.wait_for_load_state("networkidle")
+            await asyncio.sleep(1)  # 等待动态内容加载
 
             results = await page.evaluate(f'''
                 () => {{
                     const items = [];
-                    document.querySelectorAll("#content_left .result, #content_left .result-op").forEach((el, i) => {{
-                        if (i >= {self.max_results}) return;
-                        const titleEl = el.querySelector("h3 a, .t a");
-                        const absEl = el.querySelector(".c-abstract, .content-right_8Yz40, .c-span9");
-                        if (titleEl) {{
+                    // 选择所有可能的搜索结果容器
+                    const selectors = [
+                        '#content_left .result',
+                        '#content_left .result-op',
+                        '#content_left > div'
+                    ];
+
+                    let count = 0;
+                    selectors.forEach(sel => {{
+                        document.querySelectorAll(sel).forEach((el, i) => {{
+                            if (count >= {self.max_results}) return;
+
+                            // 获取标题：尝试多种选择器
+                            const titleSelectors = [
+                                'h3 a',
+                                '.cosc-title a',
+                                '.title-box a',
+                                '[class*=title] a'
+                            ];
+                            let titleEl = null;
+                            for (const ts of titleSelectors) {{
+                                const found = el.querySelector(ts);
+                                if (found) {{ titleEl = found; break; }}
+                            }}
+
+                            if (!titleEl) return;
+
+                            // 获取摘要：尝试多种选择器
+                            const absSelectors = [
+                                'p[class*=abstract]',
+                                'div[class*=abstract]',
+                                '.c-abstract',
+                                '[class*=summary]',
+                                '[class*=desc]',
+                                'span[class*=info]'
+                            ];
+                            let abstract = '';
+                            for (const asel of absSelectors) {{
+                                const absEl = el.querySelector(asel);
+                                if (absEl) {{
+                                    abstract = absEl.innerText.trim().slice(0, 200);
+                                    break;
+                                }}
+                            }}
+
                             items.push({{
-                                title: titleEl.innerText.trim(),
-                                url: titleEl.href,
-                                abstract: absEl ? absEl.innerText.trim().slice(0, 200) : ""
+                                title: titleEl.innerText.trim().slice(0, 100),
+                                url: titleEl.href || '',
+                                abstract: abstract
                             }});
-                        }}
+                            count++;
+                        }});
                     }});
                     return items;
                 }}
             ''')
 
             await browser.close()
-
-            # 直接返回结果，不做额外清理（避免编码问题）
             return results or []
 
+
 if __name__ == "__main__":
-    # 解析 keyword=xxx max_results=N 格式的命令行参数
     keyword = None
     max_results = 10
     for arg in sys.argv[1:]:
