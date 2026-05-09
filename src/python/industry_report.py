@@ -3,7 +3,7 @@ import os
 import sys
 import json
 import subprocess
-from typing import Dict, List, Optional
+from typing import Dict, List
 from datetime import datetime
 
 class IndustryReportGenerator:
@@ -42,7 +42,7 @@ class IndustryReportGenerator:
         trend_file = os.path.join(output_dir, "trend.json")
 
         cmd1 = f'tvly search "{keyword} 头部玩家 平台 官网 2026" --max-results 8 -o {main_file}'
-        cmd2 = f'tvly search "{keyword} 最新动态 融资 产品发布 2026" --max-results 6 --topic news -o {news_file}'
+        cmd2 = f'tvly search "{keyword} 最新动态 行业新闻 2026" --max-results 6 -o {news_file}'
         cmd3 = f'tvly search "{keyword} 竞品对比 推荐 选型" --max-results 6 -o {compare_file}'
         cmd4 = f'tvly search "{keyword} 趋势 数字化转型 技术动态" --max-results 5 -o {trend_file}'
 
@@ -66,12 +66,27 @@ class IndustryReportGenerator:
         compare_data = self._load_json(os.path.join(output_dir, "compare.json"))
         trend_data = self._load_json(os.path.join(output_dir, "trend.json"))
 
+        # 从所有数据源提取头部玩家
+        top_players = self._extract_players(main_data)
+        competitors = self._extract_competitors(compare_data)
+
+        # 如果top_players太少，从competitors补充
+        if len(top_players) < 3:
+            for c in competitors:
+                if len(top_players) >= 5:
+                    break
+                # 排除非玩家（如PDF、招聘网站）
+                name = c.get('name', '')
+                if 'ERP' in name or '系统' in name or '软件' in name or '厂商' in name:
+                    if c.get('score', 0) >= 0.6:  # 只取高分的
+                        top_players.append(c)
+
         report = {
             "industry": keyword,
             "generated_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            "top_players": self._extract_players(main_data),
+            "top_players": top_players[:8],
             "latest_news": self._extract_news(news_data),
-            "competitors": self._extract_competitors(compare_data),
+            "competitors": competitors,
             "trends": self._extract_trends(trend_data),
             "key_insights": self._generate_insights(main_data, news_data, compare_data, trend_data)
         }
@@ -79,48 +94,74 @@ class IndustryReportGenerator:
         return report
 
     def _extract_players(self, data: Dict) -> List[Dict]:
-        """提取头部玩家"""
-        # 放宽筛选条件，score >= 0.5
-        exclude_domains = ['wikipedia.org', 'baike.baidu.com']  # 只排除百科类
+        """提取头部玩家 - 使用更低阈值捕获中文相关结果"""
+        exclude_domains = ['wikipedia.org', 'baike.baidu.com', 'scribd.com',
+                           'zhaopin.com', 'zhilian.com', '51job.com', 'liepin.com',  # 招聘网站
+                           'csdn.net', 'iteye.com', 'cnblogs.com',  # 技术博客
+                           'zhihu.com', 'baidu.com', 'sina.com.cn', 'sohu.com', 'qq.com']  # 聚合/门户
         results = data.get('results', [])
         players = []
         for r in results:
-            if r.get('score', 0) >= 0.5:
-                url = r.get('url', '')
-                domain = url.split('/')[2] if '/' in url else ''
-                if domain not in exclude_domains:
-                    players.append({
-                        "name": r.get('title', ''),
-                        "url": url,
-                        "score": r.get('score', 0),
-                        "domain": domain
-                    })
+            score = r.get('score', 0)
+            title = r.get('title', '')
+            url = r.get('url', '')
+
+            # 跳过低分
+            if score < 0.25:
+                continue
+
+            # 跳过纯英文标题（无中文）
+            if title and not any('一' <= c <= '鿿' for c in title):
+                continue
+
+            # 跳过招聘相关标题
+            if any(kw in title for kw in ['招聘', '职位', '薪资', '面试', '简历', '猎头', 'job', 'career', 'hiring']):
+                continue
+
+            domain = url.split('/')[2] if '/' in url else ''
+            if domain not in exclude_domains:
+                players.append({
+                    "name": title,
+                    "url": url,
+                    "score": score,
+                    "domain": domain
+                })
         return players[:8]
 
     def _extract_news(self, data: Dict) -> List[Dict]:
         """提取最新动态"""
         results = data.get('results', [])
         news = []
-        for r in results[:6]:
+        for r in results:
+            title = r.get('title', '')
+            # 跳过无中文标题的新闻（国际新闻噪音太多）
+            if not any('一' <= c <= '鿿' for c in title):
+                continue
             news.append({
-                "title": r.get('title', ''),
+                "title": title,
                 "url": r.get('url', ''),
                 "date": "2026",  # Tavily不返回日期，使用年 approximate
                 "source": self._extract_domain(r.get('url', ''))
             })
-        return news
+        return news[:6]
 
     def _extract_competitors(self, data: Dict) -> List[Dict]:
         """提取竞品信息"""
         results = data.get('results', [])
         competitors = []
         for r in results:
-            if r.get('score', 0) >= 0.5:
-                competitors.append({
-                    "name": r.get('title', ''),
-                    "url": r.get('url', ''),
-                    "score": r.get('score', 0)
-                })
+            title = r.get('title', '')
+            score = r.get('score', 0)
+            # 跳过纯英文和无中文标题
+            if score < 0.3:
+                continue
+            if not any('一' <= c <= '鿿' for c in title):
+                continue
+            competitors.append({
+                "name": title,
+                "url": r.get('url', ''),
+                "score": score
+            })
         return competitors[:6]
 
     def _extract_trends(self, data: Dict) -> List[str]:
@@ -141,18 +182,30 @@ class IndustryReportGenerator:
 
     def _generate_insights(self, main_data: Dict, news_data: Dict, compare_data: Dict, trend_data: Dict) -> Dict:
         """生成关键洞察"""
-        # 统计数量
-        player_count = len([r for r in main_data.get('results', []) if r.get('score', 0) >= 0.6])
+        # 统计数量 - 使用更低阈值
+        player_count = len([r for r in main_data.get('results', []) if r.get('score', 0) >= 0.25])
         news_count = len(news_data.get('results', []))
-        competitor_count = len([r for r in compare_data.get('results', []) if r.get('score', 0) >= 0.5])
+        competitor_count = len([r for r in compare_data.get('results', []) if r.get('score', 0) >= 0.25])
+        trend_count = len(trend_data.get('results', []))
 
-        # 简单洞察
+        # 判断市场活跃度
+        if news_count >= 5 and trend_count >= 3:
+            activity = "high"
+            desc = "非常活跃"
+        elif news_count >= 3 or trend_count >= 2:
+            activity = "medium"
+            desc = "中等活跃"
+        else:
+            activity = "low"
+            desc = "较为平静"
+
         insights = {
             "player_count": player_count,
             "news_count": news_count,
             "competitor_count": competitor_count,
-            "market_activity": "high" if news_count >= 5 else "medium" if news_count >= 3 else "low",
-            "summary": f"该行业有{player_count}个主要玩家，当前市场动态{news_count}条，相关竞品讨论{competitor_count}条。"
+            "trend_count": trend_count,
+            "market_activity": activity,
+            "summary": f"该行业市场{desc}，当前有{news_count}条最新动态，{trend_count}条趋势讨论。"
         }
 
         return insights
