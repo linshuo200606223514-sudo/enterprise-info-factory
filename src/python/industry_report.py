@@ -6,6 +6,8 @@ import subprocess
 from typing import Dict, List
 from datetime import datetime
 
+from ai.website_extractor import WebsiteContentExtractor
+
 class IndustryReportGenerator:
     """行业报告生成器"""
 
@@ -131,61 +133,74 @@ class IndustryReportGenerator:
         env['PYTHONIOENCODING'] = 'utf-8'
         subprocess.run(cmd, shell=True, capture_output=True, env=env)
 
-        # 检查Tavily结果质量，如果乱码太多则用scrapling备份
+        # 检查Tavily结果质量
         extract_data = self._load_json(extract_file)
         results = extract_data.get('results', [])
 
         # 检查是否有乱码
         garbled_count = 0
-        for i, r in enumerate(results):
+        for r in results:
             raw = r.get('raw_content', '')
             if raw and self._is_garbled(raw):
                 garbled_count += 1
 
-        # 如果超过一半结果乱码，尝试scrapling备份
-        if results and garbled_count > len(results) // 2:
-            self._extract_with_scrapling(players[:5])
-
-        # 为每个player补充详情
+        # 为每个player补充详情，优先用LLM提取
+        llm_extractor = WebsiteContentExtractor()
         for i, player in enumerate(players[:5]):
+            url = player.get('url', '')
             if i < len(results):
                 raw_content = results[i].get('raw_content', '')
-                player['core_functions'] = self._parse_core_functions(raw_content)
-                player['pricing'] = self._parse_pricing(raw_content)
+                if not self._is_garbled(raw_content) and len(raw_content) > 200:
+                    # 内容正常，用LLM提取结构化信息
+                    llm_result = llm_extractor.extract(raw_content, url)
+                    player['core_functions'] = llm_result.get('core_functions', '')
+                    player['pricing'] = llm_result.get('pricing', '')
+                    player['target_users'] = llm_result.get('target_users', '')
+                    player['highlights'] = llm_result.get('highlights', '')
+                else:
+                    # 内容乱码，用scrapling备用
+                    self._extract_single_with_scrapling(player)
+                    # 尝试用LLM提取
+                    if player.get('core_functions'):
+                        llm_result = llm_extractor.extract(player.get('core_functions', ''), url)
+                        player['core_functions'] = llm_result.get('core_functions', player.get('core_functions', ''))
+                        player['pricing'] = llm_result.get('pricing', player.get('pricing', ''))
+            elif url:
+                # 无Tavily结果，直接用scrapling
+                self._extract_single_with_scrapling(player)
 
-    def _extract_with_scrapling(self, players: List[Dict]) -> None:
-        """使用scrapling提取详情（备份方案）"""
+    def _extract_single_with_scrapling(self, player: Dict) -> None:
+        """使用scrapling提取单个player详情"""
         try:
             from scrapling.fetchers import Fetcher
         except ImportError:
             return
 
-        for player in players:
-            url = player.get('url', '')
-            if not url:
-                continue
-            try:
-                page = Fetcher.get(url)
-                # 提取标题和链接作为主要内容
-                content_parts = []
-                title = page.css('title::text').get()
-                if title:
-                    content_parts.append(f"标题: {title}")
-                # 提取meta描述
-                meta_desc = page.css('meta[name="description"]::attr(content)').get()
-                if meta_desc:
-                    content_parts.append(f"描述: {meta_desc}")
-                # 提取正文段落
-                for p in page.css('p::text')[:10]:
-                    text = p.strip()
-                    if text and len(text) > 20:
-                        content_parts.append(text)
-                if content_parts:
-                    content = ' '.join(content_parts)
-                    if not player.get('core_functions') or player.get('core_functions', '').startswith('内容解析失败'):
-                        player['core_functions'] = content[:200] + '...' if len(content) > 200 else content
-            except Exception:
-                pass  # 静默跳过，保留Tavily的结果
+        url = player.get('url', '')
+        if not url:
+            return
+        try:
+            page = Fetcher.get(url)
+            # 提取标题和链接作为主要内容
+            content_parts = []
+            title = page.css('title::text').get()
+            if title:
+                content_parts.append(f"标题: {title}")
+            # 提取meta描述
+            meta_desc = page.css('meta[name="description"]::attr(content)').get()
+            if meta_desc:
+                content_parts.append(f"描述: {meta_desc}")
+            # 提取正文段落
+            for p in page.css('p::text')[:10]:
+                text = p.get().strip() if hasattr(p, 'get') else str(p).strip()
+                if text and len(text) > 20:
+                    content_parts.append(text)
+            if content_parts:
+                content = ' '.join(content_parts)
+                if not player.get('core_functions'):
+                    player['core_functions'] = content[:300] + '...' if len(content) > 300 else content
+        except Exception:
+            pass
 
     def _parse_core_functions(self, content: str) -> str:
         """从内容中解析核心功能"""
