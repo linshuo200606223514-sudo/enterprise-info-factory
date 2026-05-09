@@ -24,8 +24,8 @@ class IndustryReportGenerator:
     def __init__(self, output_dir: str = None):
         # 默认输出到项目根目录的reports/文件夹
         if output_dir is None:
-            # 从 src/python/industry_report.py 向上两级到项目根目录
-            root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            # 从 src/python/industry_report.py 向上三级到项目根目录
+            root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             output_dir = os.path.join(root, "reports")
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
@@ -34,7 +34,7 @@ class IndustryReportGenerator:
     @staticmethod
     def get_default_output_dir() -> str:
         """获取默认输出目录路径"""
-        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         return os.path.join(root, "reports")
 
     def generate(self, industry_keyword: str) -> Dict:

@@ -10,10 +10,10 @@ class IndustryMarkdownReporter:
 
     def __init__(self, output_dir: str = None):
         if output_dir is None:
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            output_dir = os.path.join(os.path.dirname(script_dir), "reports")
+            root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            output_dir = os.path.join(root, "reports")
         self.output_dir = output_dir
-        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(self.output_dir, exist_ok=True)
 
     def generate(self, report_data: Dict) -> str:
         """生成Markdown格式的行业报告"""
