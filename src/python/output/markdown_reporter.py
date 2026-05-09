@@ -1,4 +1,4 @@
-"""Markdown报告生成模块 - LLM驱动版"""
+"""Markdown报告生成模块 - 支持行业背景融合"""
 import sys
 import json
 import os
@@ -15,7 +15,8 @@ class MarkdownReporter:
     def generate(self, data: Dict) -> str:
         company_name = data.get("company_name", "未知企业")
         llm_analysis = data.get("llm_analysis", data.get("structured", {}))
-        markdown = self._build_markdown(company_name, llm_analysis)
+        industry_context = data.get("industry_context", {})
+        markdown = self._build_markdown(company_name, llm_analysis, industry_context)
 
         safe_name = "".join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in company_name)
         filename = f"{safe_name}_企业画像_{datetime.now().strftime('%Y%m%d_%H%M')}.md"
@@ -25,7 +26,7 @@ class MarkdownReporter:
             f.write(markdown)
         return filepath
 
-    def _build_markdown(self, company_name: str, llm_data: Dict) -> str:
+    def _build_markdown(self, company_name: str, llm_data: Dict, industry_context: Dict = None) -> str:
         lines = [
             f"# 企业画像：{company_name}",
             "",
@@ -34,7 +35,7 @@ class MarkdownReporter:
             "",
             "---",
             "",
-            "## 已确认信息",
+            "## 📋 已确认信息",
         ]
 
         confirmed = llm_data.get("confirmed_info", {})
@@ -46,14 +47,21 @@ class MarkdownReporter:
         else:
             lines.append("- 暂无确认信息")
 
-        lines.extend(["", "## 业务特征"])
+        lines.extend(["", "## 📊 业务特征"])
         biz_chars = llm_data.get("business_characteristics", "")
         lines.append(biz_chars if biz_chars else "信息不足，无法分析")
 
-        lines.extend(["", "## 行业定位"])
+        lines.extend(["", "## 🏭 行业定位"])
         lines.append(llm_data.get("industry_position", "未确认"))
 
-        lines.extend(["", "## 潜在痛点"])
+        # 竞争优势（新增）
+        advantages = llm_data.get("competitive_advantages", [])
+        if advantages:
+            lines.extend(["", "## 💪 竞争优势"])
+            for adv in advantages:
+                lines.append(f"- {adv}")
+
+        lines.extend(["", "## ⚠️ 潜在痛点"])
         pain_points = llm_data.get("potential_pain_points", [])
         if pain_points:
             severity_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}
@@ -64,7 +72,7 @@ class MarkdownReporter:
         else:
             lines.append("未识别到明显痛点")
 
-        lines.extend(["", "## 数字化成熟度"])
+        lines.extend(["", "## 💻 数字化成熟度"])
         digital = llm_data.get("digital_maturity", {})
         if digital:
             lines.append(f"**评级**: {digital.get('level', '未知')}")
@@ -77,7 +85,7 @@ class MarkdownReporter:
         else:
             lines.append("信息不足，无法评估")
 
-        lines.extend(["", "## 市场口碑"])
+        lines.extend(["", "## 📰 市场口碑"])
         reputation = llm_data.get("market_reputation", {})
         if reputation:
             sentiment = reputation.get("sentiment", "unknown")
@@ -96,7 +104,28 @@ class MarkdownReporter:
         else:
             lines.append("暂无公开评价信息")
 
-        lines.extend(["", "## 数据缺口"])
+        # 行业背景（新增）
+        if industry_context:
+            lines.extend(["", "## 🏢 行业背景"])
+            players = industry_context.get("top_players", [])
+            if players:
+                lines.append("**行业头部玩家**:")
+                for p in players[:3]:
+                    lines.append(f"- {p.get('title', '未知')}")
+            news = industry_context.get("news", [])
+            if news:
+                lines.append("**近期动态**:")
+                for n in news[:3]:
+                    lines.append(f"- {n.get('title', '未知')[:60]}")
+
+        # 数字化建议（新增）
+        recommendations = llm_data.get("recommendations", [])
+        if recommendations:
+            lines.extend(["", "## 📋 数字化建议"])
+            for rec in recommendations:
+                lines.append(f"- {rec}")
+
+        lines.extend(["", "## 📝 数据缺口"])
         data_gaps = llm_data.get("data_gaps", [])
         if data_gaps:
             lines.append("以下关键信息暂未获取到：")
