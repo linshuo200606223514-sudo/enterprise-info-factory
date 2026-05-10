@@ -3,7 +3,7 @@ import os
 import sys
 import json
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List
 
 class IndustryMarkdownReporter:
     """行业报告Markdown生成器"""
@@ -122,9 +122,74 @@ class IndustryMarkdownReporter:
                 source = c.get('source', '')
                 lines.append(f"- [{title}]({url}) — {source}")
 
+        # 洞察分析
+        insight_lines = self._generate_insights_section(report_data)
+        lines.extend(insight_lines)
+
         lines.extend(["", "---", f"*本报告由企业信息收集系统自动生成*"])
 
         return "\n".join(lines)
+
+    def _generate_insights_section(self, report_data: Dict) -> List[str]:
+        """生成洞察分析部分"""
+        lines = []
+        players = report_data.get('top_players', [])
+
+        if not players:
+            return lines
+
+        lines.extend(["", "## 💡 关键洞察"])
+
+        # 1. 定价区间分析
+        pricing_players = [p for p in players if p.get('pricing', '未提及') != '未提及']
+        if pricing_players:
+            lines.extend(["", "### 定价区间"])
+            pricing_texts = [p.get('pricing', '') for p in pricing_players]
+            # 尝试提取价格数字
+            import re
+            prices = []
+            for text in pricing_texts:
+                nums = re.findall(r'[\d,]+\.?\d*\s*元', text)
+                prices.extend(nums[:2])  # 每个player最多取2个价格
+            if prices:
+                lines.append(f"- 已获取定价的玩家: {len(pricing_players)}/{len(players)} 个")
+                lines.append(f"- 价格样本: {', '.join(prices[:5])}")
+            else:
+                lines.append(f"- 已获取定价信息的玩家: {len(pricing_players)}/{len(players)} 个")
+                lines.append(f"- 定价模式: {pricing_texts[0][:50]}...")
+
+        # 2. 功能分布分析
+        func_players = [p for p in players if p.get('core_functions', '未提及') != '未提及']
+        if func_players:
+            lines.extend(["", "### 功能分布"])
+            lines.append(f"- 已获取功能描述的玩家: {len(func_players)}/{len(players)} 个")
+
+            # 统计功能关键词
+            all_funcs = ' '.join([p.get('core_functions', '') for p in func_players])
+            keywords = {
+                '供应链': ['供应链', '采购', '库存', '仓储'],
+                '财务管理': ['财务', '记账', '账务', '发票'],
+                '会员营销': ['会员', '营销', '优惠券', '积分'],
+                '智能分析': ['分析', '报表', 'BI', '数据'],
+                '门店管理': ['门店', '分店', '连锁', '店'],
+            }
+            for category, kws in keywords.items():
+                count = sum(1 for kw in kws if kw in all_funcs)
+                if count > 0:
+                    lines.append(f"- 涉及{category}功能的玩家: 约{count}个")
+
+        # 3. 市场格局总结
+        lines.extend(["", "### 市场格局"])
+        insights = report_data.get('key_insights', {})
+        activity = insights.get('market_activity', 'unknown')
+        if activity == 'high':
+            lines.append("该行业市场竞争激烈，头部玩家活跃，新进入者需差异化定位。")
+        elif activity == 'medium':
+            lines.append("该行业市场处于稳定期，有明确的头部玩家，市场格局相对稳定。")
+        else:
+            lines.append("该行业市场相对分散，缺乏明确的绝对领导者。")
+
+        return lines
 
     def save(self, report_data: Dict, filename: str = None) -> str:
         """保存Markdown报告"""
