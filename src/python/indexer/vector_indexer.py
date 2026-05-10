@@ -20,12 +20,12 @@ from storage.document import Document
 
 
 class VectorIndexer:
-    """向量索引构建器 - 支持 text2vec + Qdrant"""
+    """向量索引构建器 - 支持 m3e-base + Qdrant/内存存储"""
 
     def __init__(
         self,
-        embedding_model: str = "shibing624/text2vec-base-chinese",
-        vector_dim: int = 384,
+        embedding_model: str = "moka-ai/m3e-base",
+        vector_dim: int = 768,
         qdrant_host: str = "localhost",
         qdrant_port: int = 6333,
         collection_name: str = "search_docs",
