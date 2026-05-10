@@ -640,13 +640,16 @@ class IndustryReportGenerator:
                     if len(para) > 30 and len(content_parts) < 20:
                         content_parts.append(para[:200])
 
-            # 深度爬取：从主页面提取内链
+            # 深度爬取：从主页面提取内链，对不同内页定向提取
             if max_inner_pages > 0:
                 inner_links = self._find_inner_links(html, url)
-                for inner_url in inner_links[:max_inner_pages]:
-                    inner_content = self._fetch_single_page(inner_url)
-                    if inner_content and len(inner_content) > 100:
-                        content_parts.append(f"[内页] {inner_content}")
+                # 分配focus：第一个内页提取功能，第二个提取定价，第三个全量
+                focus_list = ["functions", "pricing", "all"]
+                for i, inner_url in enumerate(inner_links[:max_inner_pages]):
+                    focus = focus_list[i] if i < len(focus_list) else "all"
+                    inner_content = self._fetch_single_page(inner_url, focus=focus)
+                    if inner_content and len(inner_content) > 50:
+                        content_parts.append(f"[{focus}] {inner_content}")
 
             result = ' '.join(content_parts) if content_parts else html_clean[:500]
             return result if len(result) > 50 else ""
@@ -687,8 +690,14 @@ class IndustryReportGenerator:
         except Exception:
             return []
 
-    def _fetch_single_page(self, url: str) -> str:
-        """获取单个页面的内容（用于深度爬取）"""
+    def _fetch_single_page(self, url: str, focus: str = "all") -> str:
+        """
+        获取单个页面的内容（用于深度爬取）
+
+        Args:
+            url: 页面URL
+            focus: 提取焦点 - "pricing"（定价）、"functions"（功能）、"all"
+        """
         try:
             import requests
             import re
@@ -715,11 +724,38 @@ class IndustryReportGenerator:
             if title_match:
                 content_parts.append(f"标题: {title_match.group(1).strip()}")
 
-            # 提取段落
-            for p in re.findall(r'<p[^>]*>(.*?)</p>', html_clean, re.DOTALL | re.IGNORECASE):
-                text = re.sub(r'<[^>]+>', '', p).strip()
-                if len(text) > 20 and self._has_chinese(text):
-                    content_parts.append(text[:200])
+            if focus == "pricing":
+                # 定向提取定价相关内容
+                for p in re.findall(r'<p[^>]*>(.*?)</p>', html_clean, re.DOTALL | re.IGNORECASE):
+                    text = re.sub(r'<[^>]+>', '', p).strip()
+                    if len(text) > 20 and self._has_chinese(text):
+                        if any(kw in text for kw in ['价', '费', '元', '套餐', '版本', '收费', '订阅']):
+                            content_parts.append(text[:200])
+                # 提取表格（定价表）
+                for td in re.findall(r'<td[^>]*>(.*?)</td>', html_clean, re.DOTALL | re.IGNORECASE):
+                    text = re.sub(r'<[^>]+>', '', td).strip()
+                    if len(text) > 5 and any(kw in text for kw in ['元', '价', '费', '年', '月']):
+                        content_parts.append(text[:100])
+
+            elif focus == "functions":
+                # 定向提取功能相关内容
+                for p in re.findall(r'<p[^>]*>(.*?)</p>', html_clean, re.DOTALL | re.IGNORECASE):
+                    text = re.sub(r'<[^>]+>', '', p).strip()
+                    if len(text) > 20 and self._has_chinese(text):
+                        if any(kw in text for kw in ['功能', '模块', '系统', '管理', '服务', '解决']):
+                            content_parts.append(text[:200])
+                # 提取列表项（功能列表）
+                for li in re.findall(r'<li[^>]*>(.*?)</li>', html_clean, re.DOTALL | re.IGNORECASE):
+                    text = re.sub(r'<[^>]+>', '', li).strip()
+                    if len(text) > 5 and self._has_chinese(text):
+                        content_parts.append(text[:150])
+
+            else:
+                # 全量提取
+                for p in re.findall(r'<p[^>]*>(.*?)</p>', html_clean, re.DOTALL | re.IGNORECASE):
+                    text = re.sub(r'<[^>]+>', '', p).strip()
+                    if len(text) > 20 and self._has_chinese(text):
+                        content_parts.append(text[:200])
 
             return ' '.join(content_parts)
         except Exception:
