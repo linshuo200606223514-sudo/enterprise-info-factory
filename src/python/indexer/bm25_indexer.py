@@ -1,9 +1,16 @@
 """BM25 索引模块 - 使用 rank-bm25 + jieba 分词"""
 import jieba
-from typing import List, Dict, Tuple
 import numpy as np
+from typing import List, Dict, Tuple, Set
 
 from storage.document import Document
+
+# 默认行业术语（可以在实例化后添加更多）
+DEFAULT_TERMS: Set[str] = {
+    "ERP", "CRM", "OMS", "POS", "SaaS", "电商", "餐饮", "零售",
+    "供应链", "财务管理", "人力资源", "客户管理", "订单管理",
+    "数字化转型", "智能化", "自动化",
+}
 
 
 class BM25Indexer:
@@ -14,24 +21,42 @@ class BM25Indexer:
         k1: float = 1.5,
         b: float = 0.75,
         avg_doc_length: int = None,
+        custom_terms: Set[str] = None,
     ):
         """
         Args:
             k1: BM25 参数，控制词频饱和度
             b: BM25 参数，控制文档长度归一化
             avg_doc_length: 平均文档长度（自动计算）
+            custom_terms: 自定义行业术语集合
         """
         self.k1 = k1
         self.b = b
-        self.avg_doc_length = avg_doc_length or 500  # 默认估计值
+        self.avg_doc_length = avg_doc_length or 500
+
+        # 合并默认术语和自定义术语
+        self.custom_terms = (DEFAULT_TERMS | (custom_terms or set()))
+        self._setup_jieba()
 
         # 分词器配置
         self.stopwords = self._load_chinese_stopwords()
 
         # 索引数据
-        self.doc_ids: List[str] = []  # URL -> index
-        self.doc_tokens: List[List[str]] = []  # 分词后的文档
-        self.doc_lengths: List[int] = []  # 文档长度
+        self.doc_ids: List[str] = []
+        self.doc_tokens: List[List[str]] = []
+        self.doc_lengths: List[int] = []
+
+    def _setup_jieba(self) -> None:
+        """配置 jieba 分词器"""
+        # 添加自定义术语到 jieba
+        for term in self.custom_terms:
+            jieba.add_word(term, freq=1000, tag='nz')
+
+    def add_terms(self, terms: Set[str]) -> None:
+        """动态添加行业术语"""
+        for term in terms:
+            jieba.add_word(term, freq=1000, tag='nz')
+            self.custom_terms.add(term)
 
     def build_index(self, documents: List[Document]) -> None:
         """从文档列表构建 BM25 索引"""
