@@ -336,7 +336,42 @@ class IndustryReportGenerator:
             "key_insights": self._generate_insights(main_data, news_data, compare_data, trend_data, top_players)
         }
 
+        # 分析内容提取质量
+        report['extraction_quality'] = self._analyze_extraction_quality(report)
+
         return report
+
+    def _analyze_extraction_quality(self, report_data: Dict) -> Dict:
+        """分析内容提取质量 - 评估实际得到了多少有效信息"""
+        players = report_data.get('top_players', [])
+
+        extraction_quality = {
+            "total_players": len(players),
+            "core_functions_valid": 0,
+            "pricing_valid": 0,
+            "target_users_valid": 0,
+            "highlights_valid": 0,
+        }
+
+        for p in players:
+            if p.get('core_functions', '未提及') != '未提及':
+                extraction_quality["core_functions_valid"] += 1
+            if p.get('pricing', '未提及') != '未提及':
+                extraction_quality["pricing_valid"] += 1
+            if p.get('target_users', '未提及') != '未提及':
+                extraction_quality["target_users_valid"] += 1
+            if p.get('highlights', '未提及') != '未提及':
+                extraction_quality["highlights_valid"] += 1
+
+        total = len(players) if players else 1
+        extraction_quality["core_functions_rate"] = extraction_quality["core_functions_valid"] / total
+        extraction_quality["pricing_rate"] = extraction_quality["pricing_valid"] / total
+        extraction_quality["overall_rate"] = (
+            extraction_quality["core_functions_valid"] +
+            extraction_quality["pricing_valid"]
+        ) / (total * 2)
+
+        return extraction_quality
 
     def _extract_player_details(self, players: List[Dict]) -> None:
         """对头部玩家URL提取详情（核心功能、定价模式）- 并行处理"""

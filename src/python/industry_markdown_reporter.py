@@ -61,6 +61,16 @@ class IndustryMarkdownReporter:
                 status_icon = "[OK]" if status == "good" else "[WARN]" if status == "warning" else "[FAIL]"
                 lines.append(f"| {label} | {count} | {valid} | {div} | {avg:.3f} | {qs:.3f} | {status_icon} |")
 
+        # 内容提取质量
+        extraction = report_data.get('extraction_quality', {})
+        if extraction:
+            lines.extend(["", "### 🔍 内容提取质量"])
+            total = extraction.get('total_players', 0)
+            lines.append(f"- 已分析玩家: {total} 个")
+            lines.append(f"- 核心功能有效率: {extraction.get('core_functions_valid', 0)}/{total} ({extraction.get('core_functions_rate', 0)*100:.0f}%)")
+            lines.append(f"- 定价信息有效率: {extraction.get('pricing_valid', 0)}/{total} ({extraction.get('pricing_rate', 0)*100:.0f}%)")
+            lines.append(f"- 综合有效率: {extraction.get('overall_rate', 0)*100:.0f}%")
+
         # 头部玩家（带详情）
         players = report_data.get('top_players', [])
         if players:
