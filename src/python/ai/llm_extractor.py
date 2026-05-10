@@ -18,22 +18,22 @@ class LLMExtractor:
 
     def _init_clients(self):
         """初始化多个API客户端，按优先级排序"""
-        # 1. OpenAI (如果设置了OPENAI_API_KEY)
+        # 1. MiniMax (优先 - 用户配置的sk-cp-格式key)
         openai_key = os.getenv("OPENAI_API_KEY")
         if openai_key:
             try:
-                client = OpenAI(api_key=openai_key)
-                self.clients.append(("openai", client, "gpt-4o-mini"))
+                # MiniMax使用OpenAI兼容格式，端点是 api.minimaxi.com/v1
+                client = OpenAI(api_key=openai_key, base_url='https://api.minimaxi.com/v1')
+                self.clients.append(("minimax", client, "MiniMax-M2.7"))
             except:
                 pass
 
-        # 2. MiniMax (如果设置了MINIMAX_API_KEY)
+        # 2. MiniMax 独立API Key (如果设置了MINIMAX_API_KEY)
         minimax_key = os.getenv("MINIMAX_API_KEY")
-        minimax_endpoint = os.getenv("MINIMAX_API_BASE", "https://api.minimax.chat/v1")
-        if minimax_key:
+        if minimax_key and minimax_key != openai_key:
             try:
-                client = OpenAI(api_key=minimax_key, base_url=minimax_endpoint)
-                self.clients.append(("minimax", client, "MiniMax-Text-01"))
+                client = OpenAI(api_key=minimax_key, base_url='https://api.minimaxi.com/v1')
+                self.clients.append(("minimax", client, "MiniMax-M2.7"))
             except:
                 pass
 
