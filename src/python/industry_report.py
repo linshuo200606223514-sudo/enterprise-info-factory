@@ -2,6 +2,7 @@
 import os
 import sys
 import json
+import re
 import subprocess
 import time
 from typing import Dict, List, Tuple
@@ -317,7 +318,10 @@ class IndustryReportGenerator:
 
         # 对头部玩家URL提取详情（核心功能、定价）
         if top_players:
+            # 第一轮：并行提取前5个player的详情（主页+3内页）
             self._extract_player_details(top_players[:5])
+            # 第二轮：为每个player执行专项搜索，获取更多上下文
+            self._search_player_details(top_players[:5])
 
         report = {
             "industry": keyword,
@@ -352,8 +356,8 @@ class IndustryReportGenerator:
             if not url:
                 return player
 
-            # 使用scrapling提取原始内容
-            raw_content = self._fetch_with_scrapling(url)
+            # 使用新的_fetch_with_scrapling（包含深度爬取）
+            raw_content = self._fetch_with_scrapling(url, max_inner_pages=3)
 
             if raw_content and len(raw_content) > 100 and not self._is_garbled(raw_content):
                 # 内容有效，用提取器分析
@@ -370,43 +374,150 @@ class IndustryReportGenerator:
 
             return player
 
-        # 并行处理最多5个player
+        # 并行处理最多8个player（每个player会爬取3个内页）
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-            futures = {executor.submit(extract_single_player, p): p for p in players[:5]}
+            futures = {executor.submit(extract_single_player, p): p for p in players[:8]}
             for future in concurrent.futures.as_completed(futures):
                 updated_player = future.result()
                 # player已经通过引用更新
 
-    def _fetch_with_scrapling(self, url: str) -> str:
-        """使用scrapling获取页面内容"""
-        try:
-            from scrapling.fetchers import Fetcher
-        except ImportError:
-            return ""
+    def _search_player_details(self, players: List[Dict]) -> None:
+        """
+        为每个player执行专项搜索，获取更多相关信息
+        在已有主页内容基础上，通过搜索补充功能/定价信息
+        """
+        for player in players:
+            name = player.get('name', '')
+            if not name or len(name) < 4:
+                continue
+            # 构建专项搜索词：player名称 + 功能/定价关键词
+            search_queries = [
+                f"{name} 核心功能 主要功能",
+                f"{name} 定价 价格 收费",
+                f"{name} ERP 系统 功能介绍",
+            ]
+            for query in search_queries:
+                self._search_single_player(query, player)
+
+    def _search_single_player(self, query: str, player: Dict) -> None:
+        """为单个player执行专项搜索并更新player信息"""
+        import subprocess
+        import json as json_lib
+
+        output_dir = "C:/tmp/industry_report"
+        tmp_file = os.path.join(output_dir, f"_player_search_{abs(hash(query)) % 10000}.json")
 
         try:
-            page = Fetcher.get(url)
+            cmd = f'tvly search "{query}" --max-results 3 -o {tmp_file}'
+            subprocess.run(cmd, shell=True, capture_output=True, timeout=60)
+
+            with open(tmp_file, 'r', encoding='utf-8') as f:
+                data = json_lib.load(f)
+
+            results = data.get('results', [])
+            for r in results:
+                # 如果搜索结果包含有用的功能/定价信息，更新player
+                content = r.get('content', '')
+                if content and len(content) > 50:
+                    # 尝试提取功能信息
+                    if '功能' in content or '系统' in content:
+                        existing = player.get('core_functions', '')
+                        if existing == '未提及' or len(existing) < len(content):
+                            player['core_functions'] = content[:200]
+                    # 尝试提取定价信息
+                    if any(kw in content for kw in ['元', '价', '费', '套餐', '年费', '月租']):
+                        existing = player.get('pricing', '')
+                        if existing == '未提及' or len(existing) < len(content):
+                            player['pricing'] = content[:150]
+        except Exception:
+            pass
+        finally:
+            try:
+                os.remove(tmp_file)
+            except:
+                pass
+
+    def _fetch_with_scrapling(self, url: str) -> str:
+        """获取页面内容 - 使用requests直接获取原始HTML，正确处理编码"""
+        try:
+            import requests
+            import re
+
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                'Accept-Encoding': 'gzip, deflate',
+            }
+            response = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
+            response.raise_for_status()
+
+            html = response.text
+
             content_parts = []
 
             # 提取标题
-            title = page.css('title::text').get()
-            if title:
-                content_parts.append(f"标题: {title}")
+            title_match = re.search(r'<title[^>]*>([^<]+)</title>', html, re.IGNORECASE)
+            if title_match:
+                content_parts.append(f"标题: {title_match.group(1).strip()}")
 
             # 提取meta描述
-            meta_desc = page.css('meta[name="description"]::attr(content)').get()
-            if meta_desc:
-                content_parts.append(f"描述: {meta_desc}")
+            desc_match = re.search(r'<meta[^>]*name=["\']description["\'][^>]*content=["\']([^"\']+)["\']', html, re.IGNORECASE)
+            if not desc_match:
+                desc_match = re.search(r'<meta[^>]*content=["\']([^"\']+)["\'][^>]*name=["\']description["\']', html, re.IGNORECASE)
+            if desc_match:
+                content_parts.append(f"描述: {desc_match.group(1).strip()}")
 
-            # 提取正文段落
-            for p in page.css('p::text')[:15]:
-                text = p.get().strip() if hasattr(p, 'get') else str(p).strip()
-                if text and len(text) > 20:
-                    content_parts.append(text)
+            # 移除script和style标签
+            html_clean = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL | re.IGNORECASE)
+            html_clean = re.sub(r'<style[^>]*>.*?</style>', '', html_clean, flags=re.DOTALL | re.IGNORECASE)
 
-            return ' '.join(content_parts)
+            # 提取多类内容元素
+            # 1. 段落文本
+            for p in re.findall(r'<p[^>]*>(.*?)</p>', html_clean, re.DOTALL | re.IGNORECASE):
+                text = re.sub(r'<[^>]+>', '', p).strip()
+                if len(text) > 20 and self._has_chinese(text):
+                    content_parts.append(text[:200])
+
+            # 2. 列表项
+            for li in re.findall(r'<li[^>]*>(.*?)</li>', html_clean, re.DOTALL | re.IGNORECASE):
+                text = re.sub(r'<[^>]+>', '', li).strip()
+                if len(text) > 5 and self._has_chinese(text):
+                    content_parts.append(text[:150])
+
+            # 3. 标题文本
+            for h in re.findall(r'<h[1-6][^>]*>(.*?)</h[1-6]>', html_clean, re.DOTALL | re.IGNORECASE):
+                text = re.sub(r'<[^>]+>', '', h).strip()
+                if len(text) > 3 and self._has_chinese(text):
+                    content_parts.append(text[:100])
+
+            # 4. 表格单元格
+            for td in re.findall(r'<td[^>]*>(.*?)</td>', html_clean, re.DOTALL | re.IGNORECASE):
+                text = re.sub(r'<[^>]+>', '', td).strip()
+                if len(text) > 10 and self._has_chinese(text):
+                    content_parts.append(text[:150])
+
+            # 5. div/span中的长文本
+            for div in re.findall(r'<div[^>]*>(.*?)</div>', html_clean, re.DOTALL | re.IGNORECASE):
+                text = re.sub(r'<[^>]+>', '', div).strip()
+                if len(text) > 30 and self._has_chinese(text):
+                    content_parts.append(text[:200])
+
+            # 如果元素提取不足，补充段落模式
+            if len(content_parts) < 3:
+                for para in re.findall(r'[一-鿿][^\n]{20,}', html_clean):
+                    if len(para) > 30 and len(content_parts) < 20:
+                        content_parts.append(para[:200])
+
+            result = ' '.join(content_parts) if content_parts else html_clean[:500]
+            return result if len(result) > 50 else ""
+
         except Exception:
             return ""
+
+    def _has_chinese(self, text: str) -> bool:
+        """检查文本是否包含中文"""
+        return bool(re.search(r'[一-鿿]', text))
 
     def _parse_core_functions(self, content: str) -> str:
         """从内容中解析核心功能"""
@@ -418,7 +529,10 @@ class IndustryReportGenerator:
         if len(cleaned) < 50:
             return "官网未提供详细信息"
 
-        keywords = ['核心功能', '主要功能', '产品功能', '功能介绍', '解决方案', '库存管理', '财务管理', '订单管理']
+        keywords = ['核心功能', '主要功能', '产品功能', '功能介绍', '解决方案', '系统功能',
+                    '库存管理', '财务管理', '订单管理', '采购管理', '销售管理', '生产管理',
+                    '质量管理', '供应商管理', '客户管理', '人力资源', '报表分析', '数据分析',
+                    '移动端', '云端', 'SaaS', '智能化', '自动化', '数字化', '信息化']
         for kw in keywords:
             if kw in cleaned:
                 idx = cleaned.find(kw)
@@ -440,7 +554,9 @@ class IndustryReportGenerator:
         if self._is_navigation_content(cleaned):
             return "官网未提供定价信息"
 
-        keywords = ['定价', '价格', '收费', '费用', '套餐', '版本', '元/', '元/年', '元/月', '元起', '元/人']
+        keywords = ['定价', '价格', '收费', '费用', '套餐', '版本', '报价', '收费', '年费', '月费',
+                    '元/', '元/年', '元/月', '元起', '元/人', '万元', '千元',
+                    '免费', '试用', '折扣', '优惠', '多少钱', '怎么收费', '如何收费', '价格表']
         for kw in keywords:
             if kw in cleaned:
                 idx = cleaned.find(kw)
@@ -451,38 +567,163 @@ class IndustryReportGenerator:
                 return snippet + "..." if len(snippet) >= 150 else snippet
         return "官网未提供定价信息"
 
-    def _extract_single_with_scrapling(self, player: Dict) -> None:
-        """使用scrapling提取单个player详情"""
+    def _fetch_with_scrapling(self, url: str, max_inner_pages: int = 3) -> str:
+        """获取页面内容 - 使用requests直接获取原始HTML，正确处理编码"""
         try:
-            from scrapling.fetchers import Fetcher
-        except ImportError:
-            return
+            import requests
+            import re
+            from urllib.parse import urljoin, urlparse
 
-        url = player.get('url', '')
-        if not url:
-            return
-        try:
-            page = Fetcher.get(url)
-            # 提取标题和链接作为主要内容
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                'Accept-Encoding': 'gzip, deflate',
+            }
+            response = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
+            response.raise_for_status()
+
+            html = response.text
+
             content_parts = []
-            title = page.css('title::text').get()
-            if title:
-                content_parts.append(f"标题: {title}")
+
+            # 提取标题
+            title_match = re.search(r'<title[^>]*>([^<]+)</title>', html, re.IGNORECASE)
+            if title_match:
+                content_parts.append(f"标题: {title_match.group(1).strip()}")
+
             # 提取meta描述
-            meta_desc = page.css('meta[name="description"]::attr(content)').get()
-            if meta_desc:
-                content_parts.append(f"描述: {meta_desc}")
-            # 提取正文段落
-            for p in page.css('p::text')[:10]:
-                text = p.get().strip() if hasattr(p, 'get') else str(p).strip()
-                if text and len(text) > 20:
-                    content_parts.append(text)
-            if content_parts:
-                content = ' '.join(content_parts)
-                if not player.get('core_functions'):
-                    player['core_functions'] = content[:300] + '...' if len(content) > 300 else content
+            desc_match = re.search(r'<meta[^>]*name=["\']description["\'][^>]*content=["\']([^"\']+)["\']', html, re.IGNORECASE)
+            if not desc_match:
+                desc_match = re.search(r'<meta[^>]*content=["\']([^"\']+)["\'][^>]*name=["\']description["\']', html, re.IGNORECASE)
+            if desc_match:
+                content_parts.append(f"描述: {desc_match.group(1).strip()}")
+
+            # 移除script和style标签
+            html_clean = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL | re.IGNORECASE)
+            html_clean = re.sub(r'<style[^>]*>.*?</style>', '', html_clean, flags=re.DOTALL | re.IGNORECASE)
+
+            # 提取多类内容元素
+            # 1. 段落文本
+            for p in re.findall(r'<p[^>]*>(.*?)</p>', html_clean, re.DOTALL | re.IGNORECASE):
+                text = re.sub(r'<[^>]+>', '', p).strip()
+                if len(text) > 20 and self._has_chinese(text):
+                    content_parts.append(text[:200])
+
+            # 2. 列表项
+            for li in re.findall(r'<li[^>]*>(.*?)</li>', html_clean, re.DOTALL | re.IGNORECASE):
+                text = re.sub(r'<[^>]+>', '', li).strip()
+                if len(text) > 5 and self._has_chinese(text):
+                    content_parts.append(text[:150])
+
+            # 3. 标题文本
+            for h in re.findall(r'<h[1-6][^>]*>(.*?)</h[1-6]>', html_clean, re.DOTALL | re.IGNORECASE):
+                text = re.sub(r'<[^>]+>', '', h).strip()
+                if len(text) > 3 and self._has_chinese(text):
+                    content_parts.append(text[:100])
+
+            # 4. 表格单元格
+            for td in re.findall(r'<td[^>]*>(.*?)</td>', html_clean, re.DOTALL | re.IGNORECASE):
+                text = re.sub(r'<[^>]+>', '', td).strip()
+                if len(text) > 10 and self._has_chinese(text):
+                    content_parts.append(text[:150])
+
+            # 5. div/span中的长文本
+            for div in re.findall(r'<div[^>]*>(.*?)</div>', html_clean, re.DOTALL | re.IGNORECASE):
+                text = re.sub(r'<[^>]+>', '', div).strip()
+                if len(text) > 30 and self._has_chinese(text):
+                    content_parts.append(text[:200])
+
+            # 如果元素提取不足，补充段落模式
+            if len(content_parts) < 3:
+                for para in re.findall(r'[一-鿿][^\n]{20,}', html_clean):
+                    if len(para) > 30 and len(content_parts) < 20:
+                        content_parts.append(para[:200])
+
+            # 深度爬取：从主页面提取内链
+            if max_inner_pages > 0:
+                inner_links = self._find_inner_links(html, url)
+                for inner_url in inner_links[:max_inner_pages]:
+                    inner_content = self._fetch_single_page(inner_url)
+                    if inner_content and len(inner_content) > 100:
+                        content_parts.append(f"[内页] {inner_content}")
+
+            result = ' '.join(content_parts) if content_parts else html_clean[:500]
+            return result if len(result) > 50 else ""
+
         except Exception:
-            pass
+            return ""
+
+    def _find_inner_links(self, html: str, base_url: str) -> List[str]:
+        """从页面HTML中提取同域名的内链"""
+        try:
+            import re
+            from urllib.parse import urljoin, urlparse
+
+            parsed_base = urlparse(base_url)
+            base_domain = parsed_base.netloc
+
+            # 提取所有a标签的href
+            hrefs = re.findall(r'<a[^>]*href=["\']([^"\']+)["\']', html, re.IGNORECASE)
+
+            inner_links = []
+            for href in hrefs:
+                if not href or href.startswith('#') or href.startswith('javascript:'):
+                    continue
+                full_url = urljoin(base_url, href)
+                parsed = urlparse(full_url)
+
+                # 只保留同域名链接
+                if parsed.netloc == base_domain and parsed.scheme in ('http', 'https'):
+                    # 过滤掉明显的导航/列表页
+                    path = parsed.path.lower()
+                    skip_patterns = ['/tag/', '/category/', '/article/', '/blog/page', '/news/page',
+                                   '/page/', '/list', '/archive', '/sitemap', '/feed', '/tag']
+                    if not any(p in path for p in skip_patterns):
+                        inner_links.append(full_url)
+
+            # 去重并返回
+            return list(dict.fromkeys(inner_links))[:10]
+        except Exception:
+            return []
+
+    def _fetch_single_page(self, url: str) -> str:
+        """获取单个页面的内容（用于深度爬取）"""
+        try:
+            import requests
+            import re
+
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'zh-CN,zh;q=0.9',
+            }
+            response = requests.get(url, headers=headers, timeout=10, allow_redirects=True)
+            if response.status_code != 200:
+                return ""
+
+            html = response.text
+
+            # 移除script和style
+            html_clean = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL | re.IGNORECASE)
+            html_clean = re.sub(r'<style[^>]*>.*?</style>', '', html_clean, flags=re.DOTALL | re.IGNORECASE)
+
+            content_parts = []
+
+            # 提取标题
+            title_match = re.search(r'<title[^>]*>([^<]+)</title>', html, re.IGNORECASE)
+            if title_match:
+                content_parts.append(f"标题: {title_match.group(1).strip()}")
+
+            # 提取段落
+            for p in re.findall(r'<p[^>]*>(.*?)</p>', html_clean, re.DOTALL | re.IGNORECASE):
+                text = re.sub(r'<[^>]+>', '', p).strip()
+                if len(text) > 20 and self._has_chinese(text):
+                    content_parts.append(text[:200])
+
+            return ' '.join(content_parts)
+        except Exception:
+            return ""
 
     def _is_navigation_content(self, content: str) -> bool:
         """检测是否是导航/标签类内容（非正文）"""
