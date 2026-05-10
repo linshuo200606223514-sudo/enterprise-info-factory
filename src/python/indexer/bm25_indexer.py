@@ -104,7 +104,7 @@ class BM25Indexer:
             '与', '或', '但', '却', '而', '所以', '因为', '如果', '虽然',
         }
 
-    def search(self, query: str, top_k: int = 20) -> List[Tuple[str, float]]:
+    def search(self, query: str, top_k: int = 20, use_synonym: bool = True) -> List[Tuple[str, float]]:
         """
         BM25 搜索
 
@@ -118,43 +118,71 @@ class BM25Indexer:
         if not self.doc_ids:
             return []
 
-        query_tokens = self._tokenize(query)
-        if not query_tokens:
-            return []
-
-        # 计算 IDF
-        doc_count = len(self.doc_tokens)
-        doc_freq = {}  # token -> 出现文档数
-        for tokens in self.doc_tokens:
-            for t in set(tokens):
-                doc_freq[t] = doc_freq.get(t, 0) + 1
-
-        # 计算每个文档的 BM25 分数
-        scores: Dict[str, float] = {}
-        for idx, tokens in enumerate(self.doc_tokens):
-            url = self.doc_ids[idx]
-            doc_len = self.doc_lengths[idx]
-            score = 0.0
-
-            for qt in query_tokens:
-                if qt not in doc_freq:
+        # 同义词扩展
+        if use_synonym:
+            from search.synonym_expander import expand_query
+            expanded_queries = expand_query(query)
+            # 用扩展后的词列表搜索
+            all_scores = {}
+            for eq in expanded_queries:
+                eq_tokens = self._tokenize(eq)
+                if not eq_tokens:
                     continue
+                # 计算 IDF
+                doc_count = len(self.doc_tokens)
+                doc_freq = {}
+                for tokens in self.doc_tokens:
+                    for t in set(tokens):
+                        doc_freq[t] = doc_freq.get(t, 0) + 1
+                # 计算分数
+                for idx, tokens in enumerate(self.doc_tokens):
+                    url = self.doc_ids[idx]
+                    doc_len = self.doc_lengths[idx]
+                    score = 0.0
+                    for qt in eq_tokens:
+                        if qt not in doc_freq:
+                            continue
+                        idf = np.log((doc_count - doc_freq[qt] + 0.5) / (doc_freq[qt] + 0.5) + 1)
+                        tf = tokens.count(qt)
+                        tf_norm = (tf * (self.k1 + 1)) / (tf + self.k1 * (1 - self.b + self.b * doc_len / self.avg_doc_length))
+                        score += idf * tf_norm
+                    if score > 0:
+                        all_scores[url] = all_scores.get(url, 0) + score
 
-                # IDF
-                idf = np.log((doc_count - doc_freq[qt] + 0.5) / (doc_freq[qt] + 0.5) + 1)
+            sorted_scores = sorted(all_scores.items(), key=lambda x: x[1], reverse=True)
+            return sorted_scores[:top_k]
+        else:
+            # 原版逻辑
+            query_tokens = self._tokenize(query)
+            if not query_tokens:
+                return []
 
-                # TF
-                tf = tokens.count(qt)
-                tf_norm = (tf * (self.k1 + 1)) / (tf + self.k1 * (1 - self.b + self.b * doc_len / self.avg_doc_length))
+            doc_count = len(self.doc_tokens)
+            doc_freq = {}
+            for tokens in self.doc_tokens:
+                for t in set(tokens):
+                    doc_freq[t] = doc_freq.get(t, 0) + 1
 
-                score += idf * tf_norm
+            scores: Dict[str, float] = {}
+            for idx, tokens in enumerate(self.doc_tokens):
+                url = self.doc_ids[idx]
+                doc_len = self.doc_lengths[idx]
+                score = 0.0
 
-            if score > 0:
-                scores[url] = score
+                for qt in query_tokens:
+                    if qt not in doc_freq:
+                        continue
 
-        # 排序返回
-        sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-        return sorted_scores[:top_k]
+                    idf = np.log((doc_count - doc_freq[qt] + 0.5) / (doc_freq[qt] + 0.5) + 1)
+                    tf = tokens.count(qt)
+                    tf_norm = (tf * (self.k1 + 1)) / (tf + self.k1 * (1 - self.b + self.b * doc_len / self.avg_doc_length))
+                    score += idf * tf_norm
+
+                if score > 0:
+                    scores[url] = score
+
+            sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+            return sorted_scores[:top_k]
 
     def get_scores(self, query: str) -> Dict[str, float]:
         """获取查询对所有文档的 BM25 分数"""
