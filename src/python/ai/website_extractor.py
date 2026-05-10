@@ -23,18 +23,19 @@ class WebsiteContentExtractor:
     def extract(self, content: str, url: str = "") -> Dict:
         """
         从网站内容中提取结构化信息
-
-        Returns:
-            Dict: {
-                "core_functions": str,  # 核心功能描述
-                "pricing": str,          # 定价信息
-                "target_users": str,    # 目标用户
-                "highlights": str,      # 产品亮点
-                "use_cases": str       # 典型用例
-            }
+        优先使用LLM，fallback到关键词匹配
         """
-        # 暂时禁用LLM提取，因API key格式不兼容MiniMax
-        # TODO: 配置正确的API endpoint后启用
+        # 先尝试LLM提取
+        try:
+            from ai.llm_extractor import extract_with_llm
+            llm_result = extract_with_llm(content, url)
+            # 如果LLM提取到了有效信息（不是"未提及"），使用LLM结果
+            if llm_result.get('core_functions', '未提及') != '未提及':
+                return llm_result
+        except Exception as e:
+            pass  # LLM失败，继续使用fallback
+
+        # LLM失败或不完整，使用fallback
         return self._fallback_extract(content)
 
     def _is_navigation_content(self, content: str) -> bool:
@@ -44,11 +45,19 @@ class WebsiteContentExtractor:
         # URL链接模式 = 导航内容
         if '](https://' in content:
             return True
-        nav_patterns = ['](/', 'tag-', 'article/', 'category/']
-        nav_count = sum(content.count(p) for p in nav_patterns)
-        if nav_count > 3:
+        # 完全由导航元素组成（iframe + 短词列表）= 导航内容
+        if content.count('iframe') > 2 and len(content) < 200:
             return True
-        if len(content) > 0 and nav_count / len(content) > 0.05:
+        # 计算导航词和实际内容词的比例
+        nav_words = ['导航', '菜单', '栏目', '标签', '分类', 'iframe', 'src=']
+        content_words = ['功能', '产品', '解决方案', '系统', '管理', '平台', '服务', '企业', '应用', '数据']
+        nav_count = sum(content.count(w) for w in nav_words)
+        content_count = sum(content.count(w) for w in content_words)
+        # 如果导航词远多于内容词，认为是导航
+        if nav_count > 2 and content_count < 2:
+            return True
+        # 导航比例过高
+        if len(content) > 0 and nav_count / len(content) > 0.1:
             return True
         return False
 
@@ -68,7 +77,9 @@ class WebsiteContentExtractor:
 
         # 提取功能描述 - 尝试多个关键词和位置
         result['core_functions'] = self._extract_best_snippet(content,
-            ['功能', '产品介绍', '解决方案', '核心优势', '系统功能', '主要功能', '产品功能'],
+            ['功能', '产品介绍', '解决方案', '核心优势', '系统功能', '主要功能', '产品功能',
+             '模块', '能力', '服务', '系统', '平台', '库存', '订单', '财务', '采购', '销售',
+             '生产', '质量管理', '报表', '数据', '移动', '云端', '智能', '自动化'],
             window_before=50, window_after=300, max_length=280)
 
         # 提取定价信息 - 包含数字+单位的定价模式
@@ -76,7 +87,8 @@ class WebsiteContentExtractor:
 
         # 提取目标用户
         result['target_users'] = self._extract_best_snippet(content,
-            ['目标用户', '适用', '面向', '适合', '客户', '人群', '场景', '受众'],
+            ['目标用户', '适用', '面向', '适合', '客户', '人群', '场景', '受众', '行业',
+             '企业', '公司', '工厂', '店铺', '门店', '餐厅', '酒店', '超市', '仓库'],
             window_before=10, window_after=250, max_length=200)
 
         # 提取亮点/优势
